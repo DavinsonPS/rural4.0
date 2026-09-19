@@ -1,0 +1,10 @@
+# Libreria externa para ESP32-CAM
+WiFiManager
+
+# Incluidas en el core ESP32
+# esp_camera.h
+# WiFi.h
+# WiFiClient.h
+# WiFiClientSecure.h
+# Preferences.h
+# SD_MMC.h
