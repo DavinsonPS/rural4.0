@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rural 4.0 | Nueva contraseña</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+	<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-page recovery-page">
+	<main class="login-shell recovery-shell">
+		<section class="login-intro" aria-labelledby="reset-title"><div class="login-brand"><i class="ti ti-plant-2" aria-hidden="true"></i><span>Rural 4.0</span></div><div class="intro-copy"><span class="login-kicker">Último paso</span><h1 id="reset-title">Crea una<br><strong>nueva clave.</strong></h1><p>Elige una contraseña segura para volver a tu proyecto.</p></div><div class="intro-footer"><span class="intro-line"></span><span>Aprende · Registra · Crece</span></div></section>
+		<section class="login-panel" aria-label="Formulario de nueva contraseña"><a class="back-link" href="/"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver al inicio de sesión</a><div class="login-panel-heading"><span class="eyebrow">Nueva contraseña</span><h2>Restablece tu acceso</h2><p>Usa al menos 8 caracteres. El enlace solo puede utilizarse una vez.</p></div><form id="reset-form" class="login-form"><div class="login-field"><label for="reset-password">Nueva contraseña</label><div class="input-wrap"><i class="ti ti-lock" aria-hidden="true"></i><input id="reset-password" name="password" type="password" minlength="8" autocomplete="new-password" required></div></div><div class="login-field"><label for="reset-confirm">Confirmar contraseña</label><div class="input-wrap"><i class="ti ti-lock-check" aria-hidden="true"></i><input id="reset-confirm" name="confirmation" type="password" minlength="8" autocomplete="new-password" required></div></div><div id="reset-message" class="login-message" role="alert" aria-live="polite"></div><button class="login-submit" id="reset-submit" type="submit"><span>Guardar contraseña</span><i class="ti ti-check" aria-hidden="true"></i></button></form></section>
+	</main>
+	<script src="js/restablecer.js"></script>
+</body>
+</html>

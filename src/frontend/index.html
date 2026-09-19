@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rural 4.0 | Acceso</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+	<link rel="stylesheet" href="css/login.css">
+</head>
+<body class="auth-page">
+	<main class="auth-shell" id="auth-shell">
+		<section class="auth-intro" aria-label="Presentación de Rural 4.0">
+			<div class="auth-brand"><i class="ti ti-plant-2" aria-hidden="true"></i><span>Rural 4.0</span></div>
+			<div class="auth-copy" id="auth-copy-login">
+				<span class="auth-kicker">Ciencia que crece contigo</span>
+				<h1>Cultiva ideas.<br><strong>Observa resultados.</strong></h1>
+				<p>Ingresa a tu espacio de aprendizaje y acompaña cada etapa de tu proyecto.</p>
+			</div>
+			<div class="auth-copy" id="auth-copy-register" hidden>
+				<span class="auth-kicker">Nuevo comienzo</span>
+				<h1>Tu proyecto<br><strong>empieza aquí.</strong></h1>
+				<p>Crea tu cuenta de estudiante y lleva el seguimiento de lo que cultivas.</p>
+			</div>
+			<div class="auth-copy" id="auth-copy-recovery" hidden>
+				<span class="auth-kicker">Acceso seguro</span>
+				<h1>Volvamos a<br><strong>conectar.</strong></h1>
+				<p>Recupera el acceso a tu espacio de aprendizaje de forma sencilla y segura.</p>
+			</div>
+			<div class="auth-footer"><span class="auth-line"></span><span id="auth-footer-text">Monitoreo · Aprendizaje · Comunidad</span></div>
+		</section>
+
+		<section class="auth-content" aria-label="Acceso a Rural 4.0">
+			<div class="auth-view" id="login-view">
+				<div class="auth-heading"><span class="eyebrow">Bienvenido de nuevo</span><h2>Inicia sesión</h2><p>Usa tu usuario, correo o número de documento.</p></div>
+				<form id="login-form" class="auth-form">
+					<div class="auth-field"><label for="login-identifier">Usuario</label><div class="auth-input-wrap"><i class="ti ti-user" aria-hidden="true"></i><input id="login-identifier" name="identifier" type="text" autocomplete="username" placeholder="Tu usuario o correo" required></div></div>
+					<div class="auth-field"><label for="login-password">Contraseña</label><div class="auth-input-wrap"><i class="ti ti-lock" aria-hidden="true"></i><input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required><button class="auth-password-toggle" id="password-toggle" type="button" aria-label="Mostrar contraseña"><i class="ti ti-eye" aria-hidden="true"></i></button></div></div>
+					<div id="login-message" class="auth-message" role="alert" aria-live="polite"></div>
+					<button class="auth-submit" id="login-submit" type="submit"><span>Entrar a mi espacio</span><i class="ti ti-arrow-up-right" aria-hidden="true"></i></button>
+				</form>
+				<a class="auth-link" href="#recuperar" id="show-recovery">¿Olvidaste tu contraseña?</a>
+				<a class="auth-link muted" href="#registro" id="show-register">Crear una cuenta nueva</a>
+				<p class="auth-note"><i class="ti ti-shield-check" aria-hidden="true"></i>Tu acceso está protegido por Rural 4.0</p>
+			</div>
+
+			<div class="auth-view" id="register-view" hidden>
+				<div class="auth-heading"><span class="eyebrow">Crear cuenta</span><h2>Únete a Rural 4.0</h2><p>Completa tus datos. Te enviaremos un código para confirmar que el correo es tuyo.</p></div>
+				<form id="registration-form" class="auth-register-form">
+					<div class="auth-register-grid">
+						<div class="auth-field"><label for="register-nombres">Nombres</label><input id="register-nombres" name="nombres" type="text" maxlength="100" required></div>
+						<div class="auth-field"><label for="register-apellidos">Apellidos</label><input id="register-apellidos" name="apellidos" type="text" maxlength="100" required></div>
+						<div class="auth-field"><label for="register-document-type">Tipo de documento</label><select id="register-document-type" name="id_tipo_documento" required><option value="">Cargando...</option></select></div>
+						<div class="auth-field"><label for="register-document">Número de documento</label><input id="register-document" name="numero_documento" type="text" maxlength="30" required></div>
+						<div class="auth-field"><label for="register-email">Correo electrónico</label><input id="register-email" name="correo" type="email" autocomplete="email" maxlength="150" required></div>
+						<div class="auth-field"><label for="register-phone">Teléfono <span>(opcional)</span></label><input id="register-phone" name="telefono" type="tel" maxlength="30"></div>
+						<div class="auth-field"><label for="register-username">Nombre de usuario</label><input id="register-username" name="usuario" type="text" autocomplete="username" maxlength="80" required></div>
+						<div class="auth-field"><label for="register-institution">Institución</label><select id="register-institution" name="id_institucion" required><option value="">Cargando...</option></select></div>
+						<div class="auth-field"><label for="register-password">Contraseña</label><input id="register-password" name="password" type="password" minlength="8" autocomplete="new-password" required></div>
+						<div class="auth-field"><label for="register-confirm">Confirmar contraseña</label><input id="register-confirm" name="confirmation" type="password" minlength="8" autocomplete="new-password" required></div>
+					</div>
+					<div id="registration-message" class="auth-message" role="alert" aria-live="polite"></div>
+					<button class="auth-submit" id="registration-submit" type="submit"><span>Enviar código al correo</span><i class="ti ti-mail-forward" aria-hidden="true"></i></button>
+				</form>
+				<form id="verification-form" class="auth-verification" hidden>
+					<div class="auth-verification-icon"><i class="ti ti-mail-check" aria-hidden="true"></i></div><h3>Revisa tu correo</h3><p>Enviamos un código de 8 caracteres a <strong id="verification-email"></strong>.</p><label for="verification-code">Código de verificación</label><input id="verification-code" type="text" inputmode="text" autocomplete="one-time-code" maxlength="8" placeholder="AB12CD34" required><div id="verification-message" class="auth-message" role="alert" aria-live="polite"></div><button class="auth-submit" id="verification-submit" type="submit"><span>Confirmar correo y crear cuenta</span><i class="ti ti-check" aria-hidden="true"></i></button><button class="auth-text-button" id="back-to-registration" type="button">Editar datos</button>
+				</form>
+				<a class="auth-link muted" href="#login" id="show-login">Ya tengo una cuenta</a>
+			</div>
+
+			<div class="auth-view" id="recovery-view" hidden>
+				<div class="auth-heading"><span class="eyebrow">Recuperar acceso</span><h2>¿Olvidaste tu contraseña?</h2><p>Ingresa tu usuario o correo y te enviaremos un enlace para crear una nueva.</p></div>
+				<form id="recovery-form" class="auth-form">
+					<div class="auth-field"><label for="recovery-identifier">Usuario o correo</label><div class="auth-input-wrap"><i class="ti ti-mail" aria-hidden="true"></i><input id="recovery-identifier" name="identifier" type="text" autocomplete="username" placeholder="Tu usuario o correo registrado" required></div></div>
+					<div id="recovery-message" class="auth-message" role="alert" aria-live="polite"></div>
+					<button class="auth-submit" id="recovery-submit" type="submit"><span>Enviar enlace</span><i class="ti ti-send" aria-hidden="true"></i></button>
+				</form>
+				<a class="auth-link muted" href="#login" id="show-login-recovery">Volver a iniciar sesión</a>
+				<p class="auth-note"><i class="ti ti-clock" aria-hidden="true"></i>El enlace tendrá una vigencia de 30 minutos</p>
+			</div>
+		</section>
+	</main>
+	<script src="js/login.js"></script>
+	<script src="js/registro.js"></script>
+	<script src="js/recuperar.js"></script>
+	<script src="js/auth-switch.js"></script>
+</body>
+</html>

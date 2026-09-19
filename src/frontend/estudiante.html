@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rural 4.0 | Dashboard</title>
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+	<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+	<main class="shell" data-project-id="">
+		<aside class="sidebar">
+			<div class="sidebar-logo">
+				<i class="ti ti-plant-2 logo-icon" aria-hidden="true"></i>
+				<div class="logo-title">Rural 4.0</div>
+				<div class="logo-sub">Ciencia en el campo</div>
+			</div>
+
+			<nav class="nav" aria-label="Navegación principal">
+				<div class="nav-section">Principal</div>
+				<button class="nav-item active" type="button" data-view="student"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Mi proyecto</button>
+				<button class="nav-item" type="button" data-view="plant"><i class="ti ti-plant" aria-hidden="true"></i>Mi planta</button>
+				<button class="nav-item" type="button" data-view="experiments"><i class="ti ti-flask" aria-hidden="true"></i>Experimentos</button>
+				<div class="nav-section">Datos</div>
+				<button class="nav-item" type="button" data-view="records"><i class="ti ti-chart-line" aria-hidden="true"></i>Mis registros</button>
+				<button class="nav-item" type="button" data-view="photos"><i class="ti ti-camera" aria-hidden="true"></i>Fotos de avance</button>
+				<div class="nav-section">Ayuda</div>
+				<button class="nav-item" type="button" data-view="assistant"><i class="ti ti-robot" aria-hidden="true"></i>Asistente IA</button>
+			</nav>
+
+			<div class="sidebar-footer">
+				<div class="user-pill">
+					<div class="user-avatar">U</div>
+					<div class="user-name">Usuario</div>
+				</div>
+				<button class="logout-btn" id="logout-button" type="button"><i class="ti ti-logout" aria-hidden="true"></i><span>Cerrar sesión</span></button>
+			</div>
+		</aside>
+
+		<section class="main">
+			<header class="topbar">
+				<div>
+					<div class="topbar-title">Hola, selecciona un proyecto <span aria-hidden="true">👋</span></div>
+					<div class="topbar-sub">Aún no hay un proyecto activo para este usuario.</div>
+				</div>
+				<div class="badge-live"><span class="dot"></span>Sin datos</div>
+			</header>
+
+			<div class="content">
+				<h1 class="sr-only">Dashboard de seguimiento de plantas — Rural 4.0</h1>
+				<section class="project-banner" data-dashboard-view="student" aria-label="Información del proyecto">
+					<div>
+						<span class="eyebrow">Proyecto activo</span>
+						<h1>No hay proyecto activo</h1>
+						<p>Crear un proyecto para ver la información del monitoreo.</p>
+					</div>
+					<span class="project-status" id="project-device-status"><i class="ti ti-circle-off" aria-hidden="true"></i>Sin proyecto</span>
+				</section>
+
+				<article class="card projects-card" data-dashboard-view="student">
+					<div class="card-header">
+						<div>
+							<h2 class="card-title"><i class="ti ti-folder-plus" aria-hidden="true"></i>Gestión de proyectos</h2>
+							<p class="card-help">Crea un proyecto y luego vincula el ESP32 a ese proyecto activo.</p>
+						</div>
+					</div>
+					<form id="project-form">
+						<div class="two-fields">
+							<div class="form-row">
+								<label class="form-label" for="project-name">Nombre del proyecto</label>
+								<input type="text" id="project-name" placeholder="Ej: Huerta escolar 8B" maxlength="150" required>
+							</div>
+							<div class="form-row">
+								<label class="form-label" for="project-plant">Planta</label>
+								<select id="project-plant" required>
+									<option value="1">Frijol</option>
+									<option value="2">Lechuga</option>
+									<option value="3">Tomate</option>
+								</select>
+							</div>
+							<div class="form-row">
+								<label class="form-label" for="project-teacher">Docente</label>
+								<select id="project-teacher" required>
+									<option value="">Cargando docentes...</option>
+								</select>
+							</div>
+						</div>
+						<div class="form-row">
+							<label class="form-label" for="project-description">Descripción</label>
+							<textarea id="project-description" rows="2" placeholder="Describe el objetivo del proyecto..."></textarea>
+						</div>
+						<div class="project-actions">
+							<button class="save-btn" type="submit"><i class="ti ti-plus" aria-hidden="true"></i>Crear proyecto</button>
+						</div>
+						<div id="project-form-message" class="form-error" role="alert"></div>
+					</form>
+					<div class="project-actions">
+						<button class="secondary-btn" id="show-projects" type="button" hidden><i class="ti ti-list" aria-hidden="true"></i>Ver proyectos</button>
+						<button class="secondary-btn" id="add-project" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Agregar proyecto</button>
+					</div>
+					<div class="form-row" id="project-list" hidden>
+						<label class="form-label" for="project-select">Proyecto activo</label>
+						<select id="project-select">
+							<option value="">Sin proyectos</option>
+						</select>
+					</div>
+				</article>
+
+				<div class="device-required-notice" id="device-required-notice" data-dashboard-view="student">
+					<i class="ti ti-info-circle" aria-hidden="true"></i>
+					<span>Vincula el ESP32 para comenzar a recibir mediciones y configurar el hardware.</span>
+				</div>
+
+				<div class="view-heading plant-view-heading" data-dashboard-view="plant" hidden>
+					<span class="eyebrow">Cuidado diario</span><h2>Mi planta</h2><p>Consulta el estado de tu planta, registra tus bitácoras y sigue sus cuidados.</p>
+				</div>
+
+				<section class="metrics hardware-dependent" data-dashboard-view="plant" aria-label="Métricas actuales" hidden>
+					<article class="metric-card">
+						<div class="metric-icon metric-icon-green"><i class="ti ti-temperature" aria-hidden="true"></i></div>
+						<div class="metric-val" id="m-temp">Sin datos</div>
+						<div class="metric-label">Temperatura</div>
+						<div class="metric-trend trend-up"><i class="ti ti-trending-up" aria-hidden="true"></i>Esperando lectura</div>
+					</article>
+					<article class="metric-card">
+						<div class="metric-icon metric-icon-blue"><i class="ti ti-droplet" aria-hidden="true"></i></div>
+						<div class="metric-val" id="m-hum">Sin datos</div>
+						<div class="metric-label">Humedad del suelo</div>
+						<div class="metric-trend trend-up"><i class="ti ti-trending-up" aria-hidden="true"></i>Esperando lectura</div>
+					</article>
+					<article class="metric-card">
+						<div class="metric-icon metric-icon-yellow"><i class="ti ti-sun" aria-hidden="true"></i></div>
+						<div class="metric-val" id="m-luz">Sin datos</div>
+						<div class="metric-label">Intensidad de luz</div>
+						<div class="metric-trend trend-warn"><i class="ti ti-trending-down" aria-hidden="true"></i>Esperando lectura</div>
+					</article>
+					<article class="metric-card">
+						<div class="metric-icon metric-icon-green"><i class="ti ti-ruler-2" aria-hidden="true"></i></div>
+						<div class="metric-val" id="m-amb-hum">Sin datos</div>
+						<div class="metric-label">Humedad del ambiente</div>
+						<div class="metric-trend trend-up"><i class="ti ti-trending-up" aria-hidden="true"></i>Esperando lectura</div>
+					</article>
+				</section>
+
+				<section class="bottom" data-dashboard-view="student">
+					<article class="card device-card">
+						<div class="card-header">
+							<div>
+								<h2 class="card-title"><i class="ti ti-device-sd-card" aria-hidden="true"></i>Vincular dispositivo</h2>
+								<p class="card-help">Registra el ESP32 y asígnalo a este proyecto.</p>
+							</div>
+								<div class="device-card-actions">
+									<button class="secondary-btn" id="new-device-button" type="button"><i class="ti ti-download" aria-hidden="true"></i>Dispositivo nuevo</button>
+									<span id="device-status" class="chip">Sin vincular</span>
+								</div>
+						</div>
+						<form id="device-form">
+							<div class="form-row">
+								<label class="form-label" for="pending-device-select">Dispositivos provisionados</label>
+								<div class="two-fields">
+									<select id="pending-device-select">
+										<option value="">Buscar dispositivos pendientes</option>
+									</select>
+									<button class="secondary-btn" id="find-devices" type="button"><i class="ti ti-refresh" aria-hidden="true"></i>Buscar</button>
+								</div>
+							</div>
+							<div class="form-row">
+								<label class="form-label" for="device-code">Código interno del ESP32</label>
+								<input type="text" id="device-code" placeholder="Ej: RURAL-0042" maxlength="50" required>
+							</div>
+							<div class="two-fields">
+								<div class="form-row">
+									<label class="form-label" for="device-mac">MAC</label>
+									<input type="text" id="device-mac" placeholder="AA:BB:CC:DD:EE:FF" maxlength="17">
+								</div>
+								<div class="form-row">
+									<label class="form-label" for="device-serial">Serial</label>
+									<input type="text" id="device-serial" placeholder="ESP32-0042" maxlength="100">
+								</div>
+							</div>
+							<div class="device-config-fields">
+								<div class="config-heading">
+									<span class="eyebrow">Configuración inicial</span>
+									<span class="config-help">Se guardará al vincular el dispositivo.</span>
+								</div>
+								<div class="three-fields">
+									<div class="form-row">
+										<label class="form-label" for="led-light">Luz de exposición</label>
+										<select id="led-light" required>
+											<option value="suave">Suave · 25%</option>
+											<option value="media">Media · 50%</option>
+											<option value="intensa">Intensa · 75%</option>
+											<option value="maxima" selected>Máxima · 100%</option>
+										</select>
+									</div>
+									<div class="form-row">
+										<label class="form-label" for="led-color">Color de los LED</label>
+										<select id="led-color" required>
+											<option value="rojo">Rojo</option>
+											<option value="verde">Verde</option>
+											<option value="azul">Azul</option>
+											<option value="blanco">Blanco</option>
+											<option value="amarillo">Amarillo</option>
+											<option value="morado">Morado</option>
+										</select>
+									</div>
+									<div class="form-row">
+										<label class="form-label" for="soil-type">Tipo de tierra</label>
+										<select id="soil-type" required>
+											<option value="franca">Tierra franca</option>
+											<option value="arenosa">Tierra arenosa</option>
+											<option value="arcillosa">Tierra arcillosa</option>
+											<option value="compost">Tierra con compost</option>
+										</select>
+									</div>
+								</div>
+							</div>
+							<div class="form-row" hidden>
+								<label class="form-label" for="device-registration-key">Clave de registro</label>
+								<input type="hidden" id="device-registration-key" autocomplete="off" value="">
+							</div>
+							<div id="device-form-message" class="form-error" role="alert"></div>
+							<div class="device-actions">
+								<button class="secondary-btn" id="register-device" type="button"><i class="ti ti-scan" aria-hidden="true"></i>Reconocer ESP32</button>
+								<button class="save-btn" id="link-device" type="submit" disabled><i class="ti ti-link" aria-hidden="true"></i>Vincular al proyecto</button>
+							</div>
+							<div id="device-link-code" class="link-code" hidden></div>
+							<div id="device-api-key" class="link-code" hidden></div>
+						</form>
+
+							<div id="device-linked-summary" class="device-summary" hidden>
+								<h3>Dispositivo vinculado</h3>
+								<p><strong>Código:</strong> <span id="linked-device-code">-</span></p>
+								<p><strong>Configuración:</strong> <span id="linked-device-config">-</span></p>
+								<button class="secondary-btn" id="unlink-device" type="button"><i class="ti ti-trash" aria-hidden="true"></i>Eliminar dispositivo</button>
+							</div>
+					</article>
+
+				</section>
+
+				<section class="bottom plant-care-section" data-dashboard-view="plant" hidden>
+					<article class="card plant-dependent" hidden>
+						<div class="card-header">
+							<div>
+								<h2 class="card-title"><i class="ti ti-pencil-plus" aria-hidden="true"></i>Bitácora diaria</h2>
+								<p class="card-help">Registra lo que hiciste y observa cómo responde tu planta.</p>
+							</div>
+							<span class="chip">Hoy</span>
+						</div>
+						<form id="plant-form" class="daily-form">
+							<div class="form-row"><label class="form-label" for="daily-log-date">Día de la bitácora</label><input type="date" id="daily-log-date" required></div>
+							<div class="form-row">
+								<label class="form-label" for="inp-temp">Temperatura ambiente (°C)</label>
+								<input type="number" id="inp-temp" placeholder="Ej: 24" min="0" max="50" required>
+							</div>
+							<div class="form-row two-fields">
+								<div>
+									<label class="form-label" for="water-amount">Agua aplicada (ml)</label>
+									<input type="number" id="water-amount" placeholder="Ej: 150" min="0" max="5000" required>
+								</div>
+								<div>
+									<label class="form-label" for="watering-time">Hora</label>
+									<input type="time" id="watering-time" required>
+								</div>
+							</div>
+							<div class="form-row">
+								<label class="form-label" for="sl-hum">Humedad del suelo (%)</label>
+								<div class="slider-row">
+									<input type="range" min="0" max="100" value="68" id="sl-hum">
+									<div class="slider-labels"><span>Seco</span><span id="sl-val">68%</span><span>Húmedo</span></div>
+								</div>
+							</div>
+							<fieldset class="form-row color-fieldset">
+								<legend class="form-label">Color de las hojas</legend>
+								<div class="color-grid">
+									<button class="color-btn selected" type="button" style="background:#2d6a4f" data-color="Verde oscuro" aria-label="Verde oscuro" aria-pressed="true"></button>
+									<button class="color-btn" type="button" style="background:#95d5b2" data-color="Verde claro" aria-label="Verde claro" aria-pressed="false"></button>
+									<button class="color-btn" type="button" style="background:#b7d957" data-color="Verde amarillento" aria-label="Verde amarillento" aria-pressed="false"></button>
+									<button class="color-btn" type="button" style="background:#d4a017" data-color="Amarillo" aria-label="Amarillo" aria-pressed="false"></button>
+									<button class="color-btn" type="button" style="background:#e8c547" data-color="Amarillo pálido" aria-label="Amarillo pálido" aria-pressed="false"></button>
+									<button class="color-btn" type="button" style="background:#c76f30" data-color="Naranja" aria-label="Naranja" aria-pressed="false"></button>
+									<button class="color-btn" type="button" style="background:#a63d40" data-color="Rojo" aria-label="Rojo" aria-pressed="false"></button>
+									<button class="color-btn" type="button" style="background:#6b4226" data-color="Café/marrón" aria-label="Café/marrón" aria-pressed="false"></button>
+									<button class="color-btn" type="button" style="background:#8f8f8f" data-color="Gris" aria-label="Gris" aria-pressed="false"></button>
+								</div>
+							</fieldset>
+							<div class="form-row">
+								<label class="form-label" for="observation">Observación del día</label>
+								<textarea id="observation" rows="2" placeholder="Ej: brotaron hojas nuevas..."></textarea>
+							</div>
+							<div class="form-row photo-upload-row">
+								<label class="form-label" for="daily-photo">Foto de avance <span>(opcional)</span></label>
+								<input id="daily-photo" type="file" accept="image/jpeg,image/png,image/webp">
+							</div>
+							<div id="form-error" class="form-error" role="alert">Ingresa la temperatura para continuar.</div>
+							<button class="save-btn" type="submit"><i class="ti ti-device-floppy" aria-hidden="true"></i>Guardar registro</button>
+						</form>
+					</article>
+
+					<article class="card plant-dependent" hidden>
+						<div class="card-header">
+							<h2 class="card-title"><i class="ti ti-heart-rate-monitor" aria-hidden="true"></i>Estado de la planta</h2>
+							<span class="chip">En vivo</span>
+						</div>
+						<div class="plant-visual">
+							<div class="plant-circle"><i class="ti ti-plant-2 plant-icon" aria-hidden="true"></i></div>
+							<div class="status-badge status-saludable">Saludable</div>
+							<div class="bars">
+								<div class="bar-row"><span class="bar-name">Temperatura</span><div class="bar-track"><div class="bar-fill fill-green" style="width:0%"></div></div><span class="bar-val">Sin datos</span></div>
+								<div class="bar-row"><span class="bar-name">Humedad</span><div class="bar-track"><div class="bar-fill fill-blue" style="width:0%"></div></div><span class="bar-val">Sin datos</span></div>
+								<div class="bar-row"><span class="bar-name">Luz</span><div class="bar-track"><div class="bar-fill fill-yellow" style="width:0%"></div></div><span class="bar-val">Sin datos</span></div>
+								<div class="bar-row"><span class="bar-name">Crecimiento</span><div class="bar-track"><div class="bar-fill fill-green" style="width:0%"></div></div><span class="bar-val">Sin datos</span></div>
+							</div>
+						</div>
+					</article>
+
+					<article class="card care-card">
+						<div class="card-header"><div><span class="eyebrow">Rutina de cuidado</span><h2 class="card-title"><i class="ti ti-calendar-heart" aria-hidden="true"></i>Cuidados recomendados</h2></div><span class="chip">Esta semana</span></div>
+						<div class="care-list"><div><i class="ti ti-droplet" aria-hidden="true"></i><span>Revisa la humedad del suelo</span><strong>Hoy</strong></div><div><i class="ti ti-sun" aria-hidden="true"></i><span>Verifica la exposición a la luz</span><strong>Hoy</strong></div><div><i class="ti ti-notebook" aria-hidden="true"></i><span>Completa la bitácora diaria</span><strong id="daily-log-care-status">Pendiente</strong></div></div>
+					</article>
+				</section>
+
+				<section class="dashboard-view-panel" data-dashboard-view="experiments" hidden>
+					<div class="view-heading"><span class="eyebrow">Aprender haciendo</span><h2>Experimentos</h2><p>Registra pequeñas pruebas y compara cómo responde tu planta.</p></div><article class="card empty-view-card"><i class="ti ti-flask" aria-hidden="true"></i><h3>Aún no tienes experimentos</h3><p class="card-help">Crea una hipótesis desde tu proyecto y registra qué cambió en tu planta.</p><button class="save-btn compact-action" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Nuevo experimento</button></article>
+				</section>
+				<section class="dashboard-view-panel" data-dashboard-view="records" hidden>
+					<div class="view-heading"><span class="eyebrow">Datos de tu proyecto</span><h2>Mis registros</h2><p>Una bitácora por día para conservar tus observaciones y cuidados.</p></div><div id="daily-logs-list" class="daily-logs-list"><article class="card empty-view-card"><i class="ti ti-chart-line" aria-hidden="true"></i><h3>Sin registros todavía</h3><p class="card-help">Guarda tu primera bitácora desde “Mi planta”.</p></article></div>
+				</section>
+				<section class="dashboard-view-panel" data-dashboard-view="photos" hidden>
+					<div class="view-heading"><span class="eyebrow">Evolución visual</span><h2>Fotos de avance</h2><p>Tu álbum está ordenado cronológicamente para comparar el crecimiento.</p></div><div id="photo-album" class="photo-album"><article class="card empty-view-card"><i class="ti ti-camera-plus" aria-hidden="true"></i><h3>Agrega tu primera foto</h3><p class="card-help">Puedes subirla desde la bitácora diaria en “Mi planta”.</p></article></div>
+				</section>
+				<section class="dashboard-view-panel" data-dashboard-view="assistant" hidden>
+					<div class="view-heading"><span class="eyebrow">Orientación para tu proyecto</span><h2>Asistente IA</h2><p>Encuentra ideas para observar, preguntar y aprender de tu planta.</p></div><article class="card assistant-card"><div class="assistant-icon"><i class="ti ti-robot" aria-hidden="true"></i></div><h3>¿Qué quieres explorar?</h3><p class="card-help">El asistente estará disponible cuando conectemos tus observaciones con recomendaciones para tu proyecto.</p><div class="suggestion-list"><button type="button">¿Cómo sé si mi planta necesita agua?</button><button type="button">¿Qué puedo observar esta semana?</button><button type="button">¿Cómo comparo mis registros?</button></div></article>
+				</section>
+			</div>
+		</section>
+	</main>
+
+	<div class="modal-backdrop" id="new-device-modal" hidden>
+		<section class="setup-modal" role="dialog" aria-modal="true" aria-labelledby="new-device-title">
+			<button class="modal-close" id="close-new-device" type="button" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+			<div class="modal-kicker"><i class="ti ti-plug-connected" aria-hidden="true"></i>Primera instalación</div>
+			<h2 id="new-device-title">Configura un ESP32 nuevo</h2>
+			<p class="modal-intro">Instala el firmware por USB antes de registrar y vincular el dispositivo al proyecto.</p>
+			<div class="modal-actions">
+				<a class="save-btn modal-primary" href="/api/firmware/download-inicial" download="firmware.bin"><i class="ti ti-download" aria-hidden="true"></i>Descargar firmware.bin</a>
+				<a class="secondary-btn modal-platform" href="https://espressif.github.io/esptool-js/" target="_blank" rel="noreferrer"><i class="ti ti-external-link" aria-hidden="true"></i>Abrir instalador web</a>
+			</div>
+			<ol class="setup-steps">
+				<li><strong>Conecta</strong> el ESP32 al computador con un cable USB de datos.</li>
+				<li><strong>Descarga</strong> el archivo <code>firmware.bin</code> desde este panel.</li>
+				<li><strong>Abre</strong> esptool-js, selecciona el puerto COM y el archivo descargado.</li>
+				<li><strong>Instala</strong> el firmware. Si lo solicita, mantén presionado <strong>BOOT</strong> y pulsa <strong>EN/RESET</strong>.</li>
+				<li><strong>Reinicia</strong> la placa y vuelve aquí para buscarla y vincularla.</li>
+			</ol>
+			<div class="modal-note"><i class="ti ti-info-circle" aria-hidden="true"></i><span>La primera instalación siempre requiere conexión USB. Las actualizaciones posteriores pueden hacerse por WiFi.</span></div>
+		</section>
+	</div>
+	<script src="js/dashboard.js"></script>
+</body>
+</html>

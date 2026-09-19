@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rural 4.0 | Vista docente</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+	<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+	<main class="shell teacher-shell">
+		<aside class="sidebar">
+			<div class="sidebar-logo"><i class="ti ti-plant-2 logo-icon" aria-hidden="true"></i><div class="logo-title">Rural 4.0</div><div class="logo-sub">Ciencia en el campo</div></div>
+			<nav class="nav" aria-label="Navegación principal"><div class="nav-section">Docencia</div><a class="nav-item active" href="#resumen"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Resumen</a><a class="nav-item" href="#estudiantes"><i class="ti ti-users" aria-hidden="true"></i>Estudiantes</a><a class="nav-item" href="#proyectos"><i class="ti ti-plant-2" aria-hidden="true"></i>Proyectos</a></nav>
+			<div class="sidebar-footer"><button class="logout-btn" id="logout-button" type="button"><i class="ti ti-logout" aria-hidden="true"></i><span>Cerrar sesión</span></button></div>
+		</aside>
+		<section class="main">
+			<header class="topbar"><div><div class="topbar-title">Hola, <span id="teacher-name">docente</span> <span aria-hidden="true">👋</span></div><div class="topbar-sub">Aquí tienes el seguimiento de tus proyectos.</div></div><span class="badge-live"><span class="dot"></span>Panel docente</span></header>
+			<div class="content">
+				<section class="project-banner teacher-banner" id="resumen"><div><span class="eyebrow">Acompañamiento en campo</span><h1>Seguimiento de estudiantes</h1><p>Consulta el avance de los proyectos vinculados a tu institución.</p></div><i class="ti ti-chart-dots-3" aria-hidden="true"></i></section>
+			<section class="teacher-stats" aria-label="Resumen de seguimiento"><article class="teacher-stat"><i class="ti ti-users" aria-hidden="true"></i><strong>3</strong><span>Estudiantes activos</span></article><article class="teacher-stat"><i class="ti ti-plant-2" aria-hidden="true"></i><strong>3</strong><span>Proyectos en curso</span></article><article class="teacher-stat"><i class="ti ti-activity" aria-hidden="true"></i><strong>86%</strong><span>Registros al día</span></article></section>
+				<section class="teacher-panel" id="estudiantes"><div class="card-header"><div><span class="eyebrow">Actividad reciente</span><h2 class="section-title">Proyectos de estudiantes</h2></div><span class="chip">Actualizado hoy</span></div><div class="student-table-wrap"><table class="student-table"><thead><tr><th>Estudiante</th><th>Proyecto</th><th>Último registro</th><th>Estado</th></tr></thead><tbody><tr><td>María Ruiz</td><td>Planta de fríjol</td><td>Hoy · 150 ml</td><td><span class="table-status healthy">Al día</span></td></tr><tr><td>Juan Pérez</td><td>Huerta de lechuga</td><td>Ayer · 200 ml</td><td><span class="table-status warning">Pendiente</span></td></tr><tr><td>Laura Gómez</td><td>Semillero de tomate</td><td>Hoy · 100 ml</td><td><span class="table-status healthy">Al día</span></td></tr></tbody></table></div></section>
+				<section class="card teacher-tip" id="proyectos"><i class="ti ti-bulb" aria-hidden="true"></i><div><h2 class="card-title">Una mirada constante hace crecer el proyecto</h2><p class="card-help">Revisa los registros pendientes y acompaña a tus estudiantes con observaciones oportunas.</p></div></section>
+			</div>
+		</section>
+	</main>
+	<script src="js/docente.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rural 4.0 | Recuperar contraseña</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+	<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-page recovery-page">
+	<main class="login-shell recovery-shell">
+		<section class="login-intro" aria-labelledby="recovery-title">
+			<div class="login-brand"><i class="ti ti-plant-2" aria-hidden="true"></i><span>Rural 4.0</span></div>
+			<div class="intro-copy"><span class="login-kicker">Acceso seguro</span><h1 id="recovery-title">Volvamos a<br><strong>conectar.</strong></h1><p>Recupera el acceso a tu espacio de aprendizaje de forma sencilla y segura.</p></div>
+			<div class="intro-footer"><span class="intro-line"></span><span>Tu proyecto sigue creciendo</span></div>
+		</section>
+		<section class="login-panel" aria-label="Formulario de recuperación">
+			<a class="back-link" href="/"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver al inicio de sesión</a>
+			<div class="login-panel-heading"><span class="eyebrow">Recuperar acceso</span><h2>¿Olvidaste tu contraseña?</h2><p>Ingresa tu usuario o correo y te enviaremos un enlace para crear una nueva.</p></div>
+			<form id="recovery-form" class="login-form">
+				<div class="login-field"><label for="recovery-identifier">Usuario o correo</label><div class="input-wrap"><i class="ti ti-mail" aria-hidden="true"></i><input id="recovery-identifier" name="identifier" type="text" autocomplete="username" placeholder="Tu usuario o correo registrado" required></div></div>
+			<div id="recovery-message" class="login-message" role="alert" aria-live="polite"></div>
+			<button class="login-submit" id="recovery-submit" type="submit"><span>Enviar enlace</span><i class="ti ti-send" aria-hidden="true"></i></button>
+			</form>
+			<p class="login-note"><i class="ti ti-clock" aria-hidden="true"></i>El enlace tendrá una vigencia de 30 minutos</p>
+		</section>
+	</main>
+	<script src="js/recuperar.js"></script>
+</body>
+</html>

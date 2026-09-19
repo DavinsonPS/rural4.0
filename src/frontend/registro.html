@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rural 4.0 | Crear cuenta</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+	<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-page registration-page">
+	<main class="registration-shell">
+		<section class="registration-intro"><div class="login-brand"><i class="ti ti-plant-2" aria-hidden="true"></i><span>Rural 4.0</span></div><div class="intro-copy"><span class="login-kicker">Nuevo comienzo</span><h1>Tu proyecto<br><strong>empieza aquí.</strong></h1><p>Crea tu cuenta de estudiante y lleva el seguimiento de lo que cultivas.</p></div><div class="intro-footer"><span class="intro-line"></span><span>Aprender haciendo</span></div></section>
+		<section class="registration-panel">
+			<a class="back-link" href="/"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver al inicio de sesión</a>
+			<div class="registration-heading"><span class="eyebrow">Crear cuenta</span><h2>Únete a Rural 4.0</h2><p>Completa tus datos. Te enviaremos un código para confirmar que el correo es tuyo.</p></div>
+			<form id="registration-form" class="registration-form">
+				<div class="registration-grid">
+					<div class="login-field"><label for="register-nombres">Nombres</label><input id="register-nombres" name="nombres" type="text" maxlength="100" required></div>
+					<div class="login-field"><label for="register-apellidos">Apellidos</label><input id="register-apellidos" name="apellidos" type="text" maxlength="100" required></div>
+					<div class="login-field"><label for="register-document-type">Tipo de documento</label><select id="register-document-type" name="id_tipo_documento" required><option value="">Cargando...</option></select></div>
+					<div class="login-field"><label for="register-document">Número de documento</label><input id="register-document" name="numero_documento" type="text" maxlength="30" required></div>
+					<div class="login-field"><label for="register-email">Correo electrónico</label><input id="register-email" name="correo" type="email" autocomplete="email" maxlength="150" required></div>
+					<div class="login-field"><label for="register-phone">Teléfono <span>(opcional)</span></label><input id="register-phone" name="telefono" type="tel" maxlength="30"></div>
+					<div class="login-field"><label for="register-username">Nombre de usuario</label><input id="register-username" name="usuario" type="text" autocomplete="username" maxlength="80" required></div>
+					<div class="login-field"><label for="register-institution">Institución</label><select id="register-institution" name="id_institucion" required><option value="">Cargando...</option></select></div>
+					<div class="login-field"><label for="register-password">Contraseña</label><input id="register-password" name="password" type="password" minlength="8" autocomplete="new-password" required></div>
+					<div class="login-field"><label for="register-confirm">Confirmar contraseña</label><input id="register-confirm" name="confirmation" type="password" minlength="8" autocomplete="new-password" required></div>
+				</div>
+				<div id="registration-message" class="login-message" role="alert" aria-live="polite"></div>
+				<button class="login-submit" id="registration-submit" type="submit"><span>Enviar código al correo</span><i class="ti ti-mail-forward" aria-hidden="true"></i></button>
+			</form>
+			<form id="verification-form" class="verification-form" hidden>
+				<div class="verification-icon"><i class="ti ti-mail-check" aria-hidden="true"></i></div><h3>Revisa tu correo</h3><p>Enviamos un código de 8 caracteres a <strong id="verification-email"></strong>.</p><label for="verification-code">Código de verificación</label><input id="verification-code" type="text" inputmode="text" autocomplete="one-time-code" maxlength="8" placeholder="AB12CD34" required><div id="verification-message" class="login-message" role="alert" aria-live="polite"></div><button class="login-submit" id="verification-submit" type="submit"><span>Confirmar correo y crear cuenta</span><i class="ti ti-check" aria-hidden="true"></i></button><button class="text-button" id="back-to-registration" type="button">Editar datos</button>
+			</form>
+		</section>
+	</main>
+	<script src="js/registro.js"></script>
+</body>
+</html>
