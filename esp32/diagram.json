@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "author": "Davinson Paniagua",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 9.6, "left": 14.44, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht1", "top": -172.5, "left": 52.2, "attrs": {} },
+    {
+      "type": "wokwi-led-matrix",
+      "id": "matrix1",
+      "top": -130.8,
+      "left": -263.4,
+      "attrs": { "rows": "8", "cols": "8" }
+    },
+    {
+      "type": "wokwi-ds1307",
+      "id": "rtc1",
+      "top": 253.8,
+      "left": -201.5,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-photoresistor-sensor",
+      "id": "light1",
+      "top": 80,
+      "left": 300,
+      "attrs": { "lux": "400" }
+    },
+    {
+      "type": "wokwi-soil-moisture-sensor",
+      "id": "soil1",
+      "top": -170,
+      "left": 300,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-microsd-card",
+      "id": "sd1",
+      "top": 250,
+      "left": 260,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "white", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "white", [] ],
+    [ "dht1:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "dht1:SDA", "esp:15", "green", [ "v0" ] ],
+    [ "dht1:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "rtc1:5V", "esp:5V", "red", [ "h0" ] ],
+    [ "rtc1:GND", "esp:GND.1", "black", [ "h0" ] ],
+    [ "esp:21", "rtc1:SDA", "blue", [ "h0" ] ],
+    [ "rtc1:SCL", "esp:22", "yellow", [ "h0" ] ],
+    [ "light1:VCC", "esp:3V3", "red", [ "h0" ] ],
+    [ "light1:GND", "esp:GND.1", "black", [ "h0" ] ],
+    [ "light1:AO", "esp:35", "green", [ "h0" ] ],
+    [ "soil1:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "soil1:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "soil1:AO", "esp:34", "green", [ "h0" ] ],
+    [ "sd1:VCC", "esp:3V3", "red", [ "h0" ] ],
+    [ "sd1:GND", "esp:GND.1", "black", [ "h0" ] ],
+    [ "sd1:CS", "esp:5", "purple", [ "h0" ] ],
+    [ "sd1:SCK", "esp:18", "yellow", [ "h0" ] ],
+    [ "sd1:DI", "esp:23", "blue", [ "h0" ] ],
+    [ "sd1:DO", "esp:19", "green", [ "h0" ] ],
+    [ "matrix1:VDD", "esp:5V", "red", [ "v0" ] ],
+    [ "matrix1:VSS", "esp:GND.1", "black", [ "v0" ] ],
+    [ "esp:13", "matrix1:DIN", "purple", [ "h0" ] ]
+  ],
+  "dependencies": {}
+}

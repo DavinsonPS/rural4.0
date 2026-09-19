@@ -1,0 +1,10 @@
+# Wokwi Library List
+# See https://docs.wokwi.com/guides/libraries
+
+DHT sensor library for ESPx
+Adafruit Unified Sensor
+RTClib
+BH1750
+Adafruit NeoPixel
+WiFiManager
+ArduinoJson

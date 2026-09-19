@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "author": "Davinson Paniagua",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "cam",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "cam:TX0", "$serialMonitor:RX", "white", [] ],
+    [ "cam:RX0", "$serialMonitor:TX", "white", [] ]
+  ],
+  "dependencies": {}
+}
