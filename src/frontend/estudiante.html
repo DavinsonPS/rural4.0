@@ -47,7 +47,7 @@
 					<div class="topbar-title">Hola, selecciona un proyecto <span aria-hidden="true">👋</span></div>
 					<div class="topbar-sub">Aún no hay un proyecto activo para este usuario.</div>
 				</div>
-				<div class="badge-live"><span class="dot"></span>Sin datos</div>
+				<div class="badge-live" id="student-data-status"><span class="dot"></span><span>Sin datos</span></div>
 			</header>
 
 			<div class="content">
@@ -243,7 +243,7 @@
 				</section>
 
 				<section class="bottom plant-care-section" data-dashboard-view="plant" hidden>
-					<article class="card plant-dependent" hidden>
+					<article class="card plant-dependent daily-log-source" hidden>
 						<div class="card-header">
 							<div>
 								<h2 class="card-title"><i class="ti ti-pencil-plus" aria-hidden="true"></i>Bitácora diaria</h2>
@@ -300,6 +300,31 @@
 							<button class="save-btn" type="submit"><i class="ti ti-device-floppy" aria-hidden="true"></i>Guardar registro</button>
 						</form>
 					</article>
+
+					<article class="card quest-card plant-dependent" hidden>
+						<div class="quest-heading"><div><span class="eyebrow">Misión del día</span><h2 class="card-title"><i class="ti ti-trophy" aria-hidden="true"></i>Haz crecer tu planta</h2><p class="card-help">Completa objetivos, registra tus hallazgos y sube de nivel.</p></div><strong id="quest-level" class="quest-level">Nivel 1</strong></div>
+						<div class="quest-progress"><div class="quest-progress-bar"><span id="quest-progress-fill"></span></div><span id="quest-progress-label">0/6 objetivos</span></div>
+						<div id="quest-list" class="quest-list">
+							<button type="button" class="quest-item" data-challenge="color"><i class="ti ti-eye" aria-hidden="true"></i><span><strong>Observa el color</strong><small>Busca manchas o cambios en las hojas.</small></span><em>+10 XP</em></button>
+							<button type="button" class="quest-item" data-challenge="crecer"><i class="ti ti-ruler-2" aria-hidden="true"></i><span><strong>Mide el crecimiento</strong><small>Anota la altura de tu planta.</small></span><em>+10 XP</em></button>
+							<button type="button" class="quest-item" data-challenge="compost"><i class="ti ti-recycle" aria-hidden="true"></i><span><strong>Revisa el compost</strong><small>Observa humedad, olor y lombrices.</small></span><em>+10 XP</em></button>
+							<button type="button" class="quest-item" data-challenge="riego"><i class="ti ti-droplet" aria-hidden="true"></i><span><strong>Cuida el riego</strong><small>Toca la tierra y registra el cuidado.</small></span><em>+10 XP</em></button>
+							<button type="button" class="quest-item" data-challenge="plagas"><i class="ti ti-shield-check" aria-hidden="true"></i><span><strong>Detecta visitantes</strong><small>Busca bichos y agujeros bajo las hojas.</small></span><em>+10 XP</em></button>
+							<button type="button" class="quest-item" data-challenge="foto"><i class="ti ti-camera" aria-hidden="true"></i><span><strong>Captura el avance</strong><small>Toma una foto para comparar tu planta.</small></span><em>+10 XP</em></button>
+						</div>
+						<p id="quest-message" class="quest-message">Marca tus objetivos y pulsa “Guardar registro”.</p>
+					</article>
+
+					<div class="quest-modal-backdrop" id="quest-modal" hidden>
+						<section class="quest-modal" role="dialog" aria-modal="true" aria-labelledby="quest-modal-title">
+							<button class="quest-modal-close" id="quest-modal-close" type="button" aria-label="Cerrar misión"><i class="ti ti-x" aria-hidden="true"></i></button>
+							<div class="quest-scene" id="quest-scene" aria-hidden="true"><div class="quest-sun"></div><div class="quest-ground"></div><div class="quest-character"><span>🧑‍🌾</span></div><div class="quest-prop"></div></div>
+							<div class="quest-modal-copy"><span class="eyebrow" id="quest-modal-kicker">Misión del día</span><h2 id="quest-modal-title">Observa el color</h2><p id="quest-modal-instruction">Busca manchas o cambios en las hojas.</p></div>
+							<div id="quest-modal-form"></div>
+							<p id="quest-completed-note" class="quest-completed-note" hidden><i class="ti ti-lock" aria-hidden="true"></i> Reto completado. Estos datos son solo de consulta.</p>
+							<div class="quest-modal-actions"><button class="secondary-btn" id="quest-modal-cancel" type="button">Más tarde</button><button class="save-btn" id="quest-complete" type="button"><i class="ti ti-check" aria-hidden="true"></i>Marcar como realizado</button></div>
+						</section>
+					</div>
 
 					<article class="card plant-dependent" hidden>
 						<div class="card-header">
