@@ -107,7 +107,7 @@ router.post('/', async (request, response) => {
 		return response.status(201).json({ id: result.insertId, nombre: name, id_usuario: userId, id_docente: teacherId, id_planta: plantId });
 	} catch (error) {
 		if (error.code === 'ER_DUP_ENTRY') {
-			return response.status(409).json({ error: 'El usuario ya tiene un proyecto activo.' });
+			return response.status(409).json({ error: 'El proyecto o el dispositivo seleccionado ya existe.' });
 		}
 		console.error('Project creation failed:', error.message);
 		return response.status(500).json({ error: 'No fue posible crear el proyecto.' });

@@ -45,6 +45,13 @@ function validTemperature(value) {
 	return value === null || value === undefined || value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 50);
 }
 
+function toMysqlDateTime(value) {
+	if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(value || ''))) return value;
+	const parsedDate = value ? new Date(value) : new Date();
+	if (Number.isNaN(parsedDate.getTime())) return null;
+	return parsedDate.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 router.post('/lecturas', async (request, response) => {
 	try {
 		const device = await getDevice(request);
@@ -77,6 +84,10 @@ router.post('/bitacoras', async (request, response) => {
 	const wateringTime = String(request.body?.hora_riego || '').trim() || null;
 	const leafColor = String(request.body?.color_hojas || '').trim() || null;
 	const observation = String(request.body?.observacion || '').trim() || null;
+	const completedChallenges = Array.isArray(request.body?.retos_completados)
+		? request.body.retos_completados.filter((challenge) => /^[a-z]+$/.test(String(challenge))).slice(0, 6)
+		: [];
+	const completedChallengesJson = completedChallenges.length ? JSON.stringify(completedChallenges) : null;
 
 	if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(userId) || userId <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)
 		|| !validTemperature(temperature) || !validNumber(water) || !validNumber(soilHumidity)) {
@@ -85,21 +96,34 @@ router.post('/bitacoras', async (request, response) => {
 
 	try {
 		if (!await getOwnedProject(projectId, userId)) return response.status(404).json({ error: 'Proyecto no encontrado o inactivo.' });
-
-		await pool.query(
-			`INSERT INTO tblh_bitacoras_diarias
-				(id_proyecto, fecha_bitacora, temperatura_ambiente_c, agua_aplicada_ml, hora_riego, humedad_suelo_pct, color_hojas, observacion)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-			 ON DUPLICATE KEY UPDATE
-				temperatura_ambiente_c = VALUES(temperatura_ambiente_c),
-				agua_aplicada_ml = VALUES(agua_aplicada_ml),
-				hora_riego = VALUES(hora_riego),
-				humedad_suelo_pct = VALUES(humedad_suelo_pct),
-				color_hojas = VALUES(color_hojas),
-				observacion = VALUES(observacion),
-				estado = 1`,
-			[projectId, date, temperature ?? null, water ?? null, wateringTime, soilHumidity ?? null, leafColor, observation],
-		);
+		const connection = await pool.getConnection();
+		try {
+			await connection.beginTransaction();
+			const [existingRows] = await connection.query(
+				'SELECT id FROM tblh_bitacoras_diarias WHERE id_proyecto = ? AND fecha_bitacora = ? LIMIT 1 FOR UPDATE',
+				[projectId, date],
+			);
+			if (existingRows.length) {
+				await connection.query(
+					`UPDATE tblh_bitacoras_diarias SET temperatura_ambiente_c = ?, agua_aplicada_ml = ?, hora_riego = ?, humedad_suelo_pct = ?, color_hojas = ?, observacion = ?, retos_completados = ?, estado = 1
+					 WHERE id = ?`,
+					[temperature ?? null, water ?? null, wateringTime, soilHumidity ?? null, leafColor, observation, completedChallengesJson, existingRows[0].id],
+				);
+			} else {
+				await connection.query(
+					`INSERT INTO tblh_bitacoras_diarias
+						(id_proyecto, fecha_bitacora, temperatura_ambiente_c, agua_aplicada_ml, hora_riego, humedad_suelo_pct, color_hojas, observacion, retos_completados)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					[projectId, date, temperature ?? null, water ?? null, wateringTime, soilHumidity ?? null, leafColor, observation, completedChallengesJson],
+				);
+			}
+			await connection.commit();
+		} catch (error) {
+			await connection.rollback();
+			throw error;
+		} finally {
+			connection.release();
+		}
 		return response.status(201).json({ status: 'ok', fecha_bitacora: date });
 	} catch (error) {
 		console.error('Daily log failed:', error.message);
@@ -115,7 +139,7 @@ router.get('/bitacoras', async (request, response) => {
 		if (!await getOwnedProject(projectId, userId)) return response.status(404).json({ error: 'Proyecto no encontrado.' });
 		const [rows] = await pool.query(
 			`SELECT id, fecha_bitacora, temperatura_ambiente_c, agua_aplicada_ml, hora_riego,
-				humedad_suelo_pct, color_hojas, observacion
+				humedad_suelo_pct, color_hojas, observacion, retos_completados
 			 FROM tblh_bitacoras_diarias WHERE id_proyecto = ? AND estado = 1
 			 ORDER BY fecha_bitacora DESC`,
 			[projectId],
@@ -141,11 +165,14 @@ router.put('/bitacoras/:logId', async (request, response) => {
 			humedad_suelo_pct: request.body?.humedad_suelo_pct ?? null,
 			color_hojas: request.body?.color_hojas || null,
 			observacion: String(request.body?.observacion || '').trim() || null,
+			retos_completados: Array.isArray(request.body?.retos_completados)
+				? JSON.stringify(request.body.retos_completados.filter((challenge) => /^[a-z]+$/.test(String(challenge))).slice(0, 6))
+				: null,
 		};
 		await pool.query(
-			`UPDATE tblh_bitacoras_diarias SET temperatura_ambiente_c = ?, agua_aplicada_ml = ?, hora_riego = ?, humedad_suelo_pct = ?, color_hojas = ?, observacion = ?
+			`UPDATE tblh_bitacoras_diarias SET temperatura_ambiente_c = ?, agua_aplicada_ml = ?, hora_riego = ?, humedad_suelo_pct = ?, color_hojas = ?, observacion = ?, retos_completados = ?
 			 WHERE id = ? AND id_proyecto = ? AND estado = 1`,
-			[fields.temperatura_ambiente_c, fields.agua_aplicada_ml, fields.hora_riego, fields.humedad_suelo_pct, fields.color_hojas, fields.observacion, logId, projectId],
+			[fields.temperatura_ambiente_c, fields.agua_aplicada_ml, fields.hora_riego, fields.humedad_suelo_pct, fields.color_hojas, fields.observacion, fields.retos_completados, logId, projectId],
 		);
 		return response.json({ message: 'Bitácora actualizada correctamente.' });
 	} catch (error) {
@@ -185,12 +212,35 @@ router.post('/fotografias', upload.single('foto'), async (request, response) => 
 		const finalPath = path.join(folder, fileName);
 		fs.renameSync(request.file.path, finalPath);
 		const relativePath = path.relative(path.join(__dirname, '..'), finalPath).replaceAll(path.sep, '/');
+		const photoDateTime = toMysqlDateTime(request.body.fecha_fotografia || date);
+		if (!photoDateTime) return response.status(400).json({ error: 'La fecha de la fotografía es inválida.' });
 		await pool.query(
 			`INSERT INTO tblh_fotografias_monitoreo
 			 (id_proyecto, id_dispositivo, fecha_fotografia, ruta_archivo, nombre_archivo, tamano_bytes)
 			 VALUES (?, ?, ?, ?, ?, ?)`,
-			[projectId, device?.id || ownedProject.id_dispositivo || null, request.body.fecha_fotografia || date, relativePath, fileName, request.file.size],
+			[projectId, device?.id || ownedProject.id_dispositivo || null, photoDateTime, relativePath, fileName, request.file.size],
 		);
+		const photoDate = String(request.body.fecha_bitacora || request.body.fecha_fotografia || date.toISOString()).slice(0, 10);
+		const [logs] = await pool.query(
+			`SELECT id, retos_completados FROM tblh_bitacoras_diarias
+			 WHERE id_proyecto = ? AND fecha_bitacora = ? AND estado = 1 LIMIT 1`,
+			[projectId, photoDate],
+		);
+		if (logs.length) {
+			let completedChallenges = [];
+			try {
+				completedChallenges = JSON.parse(logs[0].retos_completados || '[]');
+			} catch {
+				completedChallenges = [];
+			}
+			if (!completedChallenges.includes('foto')) {
+				completedChallenges.push('foto');
+				await pool.query(
+					'UPDATE tblh_bitacoras_diarias SET retos_completados = ? WHERE id = ?',
+					[JSON.stringify(completedChallenges), logs[0].id],
+				);
+			}
+		}
 		return response.status(201).json({ status: 'ok', ruta: `/uploads/${relativePath.replace('uploads/', '')}` });
 	} catch (error) {
 		if (request.file?.path) fs.rmSync(request.file.path, { force: true });

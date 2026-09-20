@@ -7,6 +7,20 @@ const dailyLogDate = document.getElementById('daily-log-date');
 const dailyPhoto = document.getElementById('daily-photo');
 const dailyLogsList = document.getElementById('daily-logs-list');
 const dailyLogCareStatus = document.getElementById('daily-log-care-status');
+const questItems = document.querySelectorAll('.quest-item');
+const questProgressFill = document.getElementById('quest-progress-fill');
+const questProgressLabel = document.getElementById('quest-progress-label');
+const questLevel = document.getElementById('quest-level');
+const questMessage = document.getElementById('quest-message');
+const questModal = document.getElementById('quest-modal');
+const questModalForm = document.getElementById('quest-modal-form');
+const questModalClose = document.getElementById('quest-modal-close');
+const questModalCancel = document.getElementById('quest-modal-cancel');
+const questComplete = document.getElementById('quest-complete');
+const questScene = document.getElementById('quest-scene');
+const questModalTitle = document.getElementById('quest-modal-title');
+const questModalInstruction = document.getElementById('quest-modal-instruction');
+const questCompletedNote = document.getElementById('quest-completed-note');
 const photoAlbum = document.getElementById('photo-album');
 const formError = document.getElementById('form-error');
 const saveButton = document.querySelector('#plant-form .save-btn');
@@ -49,6 +63,7 @@ const deviceRequiredNotice = document.getElementById('device-required-notice');
 const projectDeviceStatus = document.getElementById('project-device-status');
 const topbarTitle = document.querySelector('.topbar-title');
 const topbarSub = document.querySelector('.topbar-sub');
+const studentDataStatus = document.getElementById('student-data-status');
 const userNameElement = document.querySelector('.user-name');
 const registrationKeyInput = document.getElementById('device-registration-key');
 const logoutButton = document.getElementById('logout-button');
@@ -63,6 +78,17 @@ let projectsModal;
 let currentDashboardView = 'student';
 let dailyLogs = [];
 let editingLogId = null;
+let selectedChallenges = [];
+let activeChallenge = null;
+const challengeIds = ['color', 'crecer', 'compost', 'riego', 'plagas', 'foto'];
+const challengeDetails = {
+	color: { title: 'Observa el color', label: 'Color', instruction: 'Usa la lupa y elige el color que más se parece a tus hojas.', action: 'color', fields: ['color', 'observation'] },
+	crecer: { title: 'Mide el crecimiento', label: 'Crecimiento', instruction: 'Mide desde la tierra hasta la hoja más alta y escribe tu hallazgo.', action: 'crecer', fields: ['observation'] },
+	compost: { title: 'Revisa el compost', label: 'Compost', instruction: 'Mira si está húmedo, huele bien y encuentras lombrices.', action: 'compost', fields: ['observation'] },
+	riego: { title: 'Cuida el riego', label: 'Riego', instruction: 'Toca la tierra, aplica agua si está seca y registra cuánto usaste.', action: 'riego', fields: ['water', 'time', 'humidity', 'observation'] },
+	plagas: { title: 'Detecta visitantes', label: 'Plagas', instruction: 'Revisa el frente y el reverso de las hojas en busca de bichos o agujeros.', action: 'plagas', fields: ['observation'] },
+	foto: { title: 'Captura el avance', label: 'Foto', instruction: 'Toma una foto de tu planta para comparar cómo crece con el tiempo.', action: 'foto', fields: ['photo', 'observation'] },
+};
 
 	logoutButton?.addEventListener('click', async () => {
 	await fetch('/api/auth/logout', { method: 'POST' });
@@ -198,11 +224,24 @@ function setMetricValues(valueText = 'Sin datos') {
 	if (humidityValue) humidityValue.textContent = '0%';
 }
 
+function setStudentDataStatus(label, state = 'idle') {
+	if (!studentDataStatus) return;
+	studentDataStatus.querySelector('span:last-child').textContent = label;
+	studentDataStatus.classList.toggle('is-connected', state === 'connected');
+	studentDataStatus.classList.toggle('is-pending', state === 'pending');
+}
+
 function todayIso() {
 	const today = new Date();
 	const month = String(today.getMonth() + 1).padStart(2, '0');
 	const day = String(today.getDate()).padStart(2, '0');
 	return `${today.getFullYear()}-${month}-${day}`;
+}
+
+function localDateTimeForDatabase() {
+	const now = new Date();
+	const pad = (value) => String(value).padStart(2, '0');
+	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 
 function updateDailyLogCareStatus() {
@@ -212,13 +251,126 @@ function updateDailyLogCareStatus() {
 	dailyLogCareStatus.classList.toggle('is-complete', hasTodayLog);
 }
 
+function parseChallenges(value) {
+	if (Array.isArray(value)) return value.filter((challenge) => challengeIds.includes(challenge));
+	try {
+		const parsed = JSON.parse(value || '[]');
+		return Array.isArray(parsed) ? parsed.filter((challenge) => challengeIds.includes(challenge)) : [];
+	} catch {
+		return [];
+	}
+}
+
+function standardizeObservationText(log) {
+	if (!log?.observacion) return '';
+	const completed = parseChallenges(log.retos_completados);
+	return log.observacion.split(' - ').map((note, index) => {
+		const trimmedNote = note.trim();
+		if (!trimmedNote || trimmedNote.includes(':')) return trimmedNote;
+		const challenge = completed[index];
+		return challengeDetails[challenge] ? `${challengeDetails[challenge].label}: ${trimmedNote}` : `Observación: ${trimmedNote}`;
+	}).filter(Boolean).join(' - ');
+}
+
+function formRowFor(selector) {
+	return document.querySelector(selector)?.closest('.form-row, .color-fieldset');
+}
+
+function getMissionObservation(challenge, log) {
+	if (!parseChallenges(log?.retos_completados).includes(challenge)) return '';
+	const standardizedObservation = standardizeObservationText(log);
+	if (!standardizedObservation) return '';
+	const label = challengeDetails[challenge]?.label;
+	const labeledNote = standardizedObservation.split(' - ').find((note) => note.trim().startsWith(`${label}:`));
+	return labeledNote ? labeledNote.trim().slice(label.length + 1).trim() : standardizedObservation;
+}
+
+function configureMissionForm(challenge, log, readOnly) {
+	const fields = challengeDetails[challenge]?.fields || [];
+	const rows = {
+		temp: formRowFor('#inp-temp'),
+		water: formRowFor('#water-amount'),
+		time: formRowFor('#watering-time'),
+		humidity: formRowFor('#sl-hum'),
+		color: formRowFor('.color-fieldset'),
+		observation: formRowFor('#observation'),
+		photo: formRowFor('#daily-photo'),
+	};
+	Object.entries(rows).forEach(([name, row]) => row?.classList.toggle('quest-hidden', !fields.includes(name)));
+	document.getElementById('observation').placeholder = challenge === 'crecer' ? 'Ej: mide 12 cm y tiene una hoja nueva...' : 'Ej: la tierra estaba húmeda...';
+	const requiredFields = ['water-amount', 'watering-time'].map((id) => document.getElementById(id));
+	requiredFields.forEach((field) => { field.required = challenge === 'riego'; });
+	document.getElementById('inp-temp').required = false;
+	document.getElementById('observation').required = fields.includes('observation');
+	if (!fields.includes('photo') && dailyPhoto) dailyPhoto.value = '';
+	document.getElementById('observation').value = getMissionObservation(challenge, log);
+	if (challenge === 'riego' && log) {
+		document.getElementById('water-amount').value = log.agua_aplicada_ml ?? '';
+		document.getElementById('watering-time').value = log.hora_riego || '';
+		humiditySlider.value = log.humedad_suelo_pct ?? 68;
+		humidityValue.textContent = `${humiditySlider.value}%`;
+	}
+	if (challenge === 'color' && log?.color_hojas) {
+		colorButtons.forEach((button) => {
+			const selected = button.dataset.color === log.color_hojas;
+			button.classList.toggle('selected', selected);
+			button.setAttribute('aria-pressed', String(selected));
+		});
+	}
+	plantForm.querySelectorAll('input, textarea, select, .color-btn').forEach((control) => {
+		control.disabled = readOnly;
+	});
+}
+
+function openQuestModal(challenge) {
+	const detail = challengeDetails[challenge];
+	if (!detail || !questModal) return;
+	activeChallenge = challenge;
+	const currentLog = dailyLogs.find((log) => String(log.fecha_bitacora || '').slice(0, 10) === (dailyLogDate.value || todayIso()));
+	const readOnly = selectedChallenges.includes(challenge);
+	questModalTitle.textContent = detail.title;
+	questModalInstruction.textContent = detail.instruction;
+	questScene.dataset.action = detail.action;
+	configureMissionForm(challenge, currentLog, readOnly);
+	questComplete.hidden = readOnly;
+	questCompletedNote.hidden = !readOnly;
+	questModal.hidden = false;
+	questModalClose.focus();
+}
+
+function closeQuestModal() {
+	if (!questModal) return;
+	questModal.hidden = true;
+	activeChallenge = null;
+}
+
+function updateQuestPanel(challenges = []) {
+	selectedChallenges = [...new Set(parseChallenges(challenges))];
+	const completedToday = selectedChallenges.length;
+	questItems.forEach((item) => {
+		const completed = selectedChallenges.includes(item.dataset.challenge);
+		item.classList.toggle('is-complete', completed);
+		item.setAttribute('aria-pressed', String(completed));
+		const reward = item.querySelector('em');
+		if (reward) reward.textContent = completed ? 'Completado' : '+10 XP';
+	});
+	if (questProgressFill) questProgressFill.style.width = `${completedToday / challengeIds.length * 100}%`;
+	if (questProgressLabel) questProgressLabel.textContent = `${completedToday}/6 objetivos`;
+	if (questMessage) questMessage.textContent = completedToday === challengeIds.length ? 'Misión completa. Guarda tu registro para conservar el XP.' : 'Abre una misión para registrar el hallazgo y ganar XP.';
+	const totalXp = dailyLogs.reduce((sum, log) => sum + parseChallenges(log.retos_completados).length * 10, 0);
+	if (questLevel) questLevel.textContent = `Nivel ${Math.floor(totalXp / 50) + 1} · ${totalXp} XP`;
+}
+
 function renderDailyLogs() {
 	if (!dailyLogsList) return;
 	if (!dailyLogs.length) {
 		dailyLogsList.innerHTML = '<article class="card empty-view-card"><i class="ti ti-chart-line" aria-hidden="true"></i><h3>Sin registros todavía</h3><p class="card-help">Guarda tu primera bitácora desde “Mi planta”.</p></article>';
 		return;
 	}
-	dailyLogsList.innerHTML = dailyLogs.map((log) => `<article class="card daily-log-card"><div class="daily-log-header"><div><span class="eyebrow">${log.fecha_bitacora}</span><h3>${log.observacion || 'Bitácora diaria'}</h3></div><div class="daily-log-actions"><button type="button" data-log-action="edit" data-log-id="${log.id}"><i class="ti ti-pencil" aria-hidden="true"></i>Editar</button><button type="button" data-log-action="delete" data-log-id="${log.id}"><i class="ti ti-trash" aria-hidden="true"></i>Eliminar</button></div></div><div class="daily-log-values"><span><i class="ti ti-temperature" aria-hidden="true"></i>${log.temperatura_ambiente_c ?? 'Sin dato'} °C</span><span><i class="ti ti-droplet" aria-hidden="true"></i>${log.humedad_suelo_pct ?? 'Sin dato'}%</span><span><i class="ti ti-droplet-filled" aria-hidden="true"></i>${log.agua_aplicada_ml ?? 'Sin dato'} ml</span><span><i class="ti ti-clock" aria-hidden="true"></i>${log.hora_riego || 'Sin hora'}</span></div></article>`).join('');
+	dailyLogsList.innerHTML = dailyLogs.map((log) => {
+		const completedChallenges = parseChallenges(log.retos_completados);
+		return `<article class="card daily-log-card"><div class="daily-log-header"><div><span class="eyebrow">${log.fecha_bitacora}</span><h3>${standardizeObservationText(log) || 'Bitácora diaria'}</h3></div><div class="daily-log-actions"><span class="log-xp"><i class="ti ti-trophy" aria-hidden="true"></i>${completedChallenges.length * 10} XP</span><button type="button" data-log-action="edit" data-log-id="${log.id}"><i class="ti ti-pencil" aria-hidden="true"></i>Editar</button><button type="button" data-log-action="delete" data-log-id="${log.id}"><i class="ti ti-trash" aria-hidden="true"></i>Eliminar</button></div></div><div class="daily-log-values"><span><i class="ti ti-target" aria-hidden="true"></i>${completedChallenges.length}/6 objetivos</span><span><i class="ti ti-temperature" aria-hidden="true"></i>${log.temperatura_ambiente_c ?? 'Sin dato'} °C</span><span><i class="ti ti-droplet" aria-hidden="true"></i>${log.humedad_suelo_pct ?? 'Sin dato'}%</span><span><i class="ti ti-droplet-filled" aria-hidden="true"></i>${log.agua_aplicada_ml ?? 'Sin dato'} ml</span><span><i class="ti ti-clock" aria-hidden="true"></i>${log.hora_riego || 'Sin hora'}</span></div></article>`;
+	}).join('');
 }
 
 async function loadDailyLogs() {
@@ -228,6 +380,8 @@ async function loadDailyLogs() {
 	dailyLogs = await response.json();
 	updateDailyLogCareStatus();
 	renderDailyLogs();
+	const todayLog = dailyLogs.find((log) => String(log.fecha_bitacora || '').slice(0, 10) === todayIso());
+	updateQuestPanel(todayLog?.retos_completados || []);
 }
 
 async function loadPhotoAlbum() {
@@ -262,13 +416,16 @@ function setHardwareAvailability(isAvailable, label = 'Dispositivo pendiente') {
 		section.hidden = currentDashboardView !== 'plant' || !currentProjectId;
 	});
 	if (!currentProjectId) {
+		setStudentDataStatus('Sin datos');
 		deviceRequiredNotice.hidden = false;
 		deviceStatus.textContent = 'Sin vincular';
 		projectDeviceStatus.innerHTML = '<i class="ti ti-circle-off" aria-hidden="true"></i>Sin proyecto';
 		return;
 	}
 	deviceRequiredNotice.hidden = isAvailable;
+	if (!isAvailable) setStudentDataStatus('Dispositivo pendiente', 'pending');
 	if (isAvailable) {
+		setStudentDataStatus('Dispositivo conectado', 'pending');
 		deviceStatus.textContent = 'Vinculado';
 		projectDeviceStatus.innerHTML = '<i class="ti ti-circle-check" aria-hidden="true"></i>Dispositivo vinculado';
 	} else {
@@ -340,6 +497,11 @@ async function loadTeachers() {
 function setActiveProject(projectId) {
 	currentProjectId = projectId ? Number(projectId) : null;
 	shell.dataset.projectId = currentProjectId ? String(currentProjectId) : '';
+	dailyLogs = [];
+	editingLogId = null;
+	selectedChallenges = [];
+	updateQuestPanel([]);
+	resetDailyLogForm();
 	if (projectSelect && currentProjectId) {
 		projectSelect.value = String(currentProjectId);
 	}
@@ -382,6 +544,7 @@ async function loadProjects() {
 		}
 		projectSelect.innerHTML = projects.map((project) => `<option value="${project.id}">${project.nombre}</option>`).join('');
 		setProjectFormVisible(false);
+		setProjectListVisible(true);
 		if (showProjectsButton) showProjectsButton.hidden = false;
 		const selectedProjectId = currentProjectId || projects[0].id;
 		setActiveProject(selectedProjectId);
@@ -474,6 +637,7 @@ function renderProjectSummary(summary) {
 	if (projectBannerSubtitle) projectBannerSubtitle.textContent = `${project.planta || 'Planta'} · ${institutionName} · ${teacherName}`;
 
 	if (reading) {
+		setStudentDataStatus('Datos en vivo', 'connected');
 		document.getElementById('m-temp').textContent = formatMetricValue(reading.temperatura_c, '°');
 		document.getElementById('m-hum').textContent = formatMetricValue(reading.humedad_suelo_pct, '%');
 		document.getElementById('m-luz').textContent = formatMetricValue(reading.intensidad_luz_lux, ' lx');
@@ -481,6 +645,7 @@ function renderProjectSummary(summary) {
 		if (humiditySlider) humiditySlider.value = Number(reading.humedad_suelo_pct || 0);
 		if (humidityValue) humidityValue.textContent = `${humiditySlider.value}%`;
 	} else {
+		setStudentDataStatus(project.id_dispositivo ? 'Dispositivo conectado' : 'Sin datos', project.id_dispositivo ? 'pending' : 'idle');
 		setMetricValues('Sin datos');
 	}
 
@@ -742,6 +907,19 @@ if (unlinkDeviceButton) {
 
 if (plantForm) {
 	if (dailyLogDate) dailyLogDate.value = todayIso();
+	if (questModalForm) questModalForm.append(plantForm);
+	questItems.forEach((item) => item.addEventListener('click', () => openQuestModal(item.dataset.challenge)));
+	questModalClose?.addEventListener('click', closeQuestModal);
+	questModalCancel?.addEventListener('click', closeQuestModal);
+	questModal?.addEventListener('click', (event) => { if (event.target === questModal) closeQuestModal(); });
+	questComplete?.addEventListener('click', () => {
+		if (!activeChallenge) return;
+		if (!selectedChallenges.includes(activeChallenge)) selectedChallenges = [...selectedChallenges, activeChallenge];
+		plantForm.requestSubmit();
+	});
+	document.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape' && questModal && !questModal.hidden) closeQuestModal();
+	});
 	dailyLogsList?.addEventListener('click', async (event) => {
 		const button = event.target.closest('[data-log-action]');
 		if (!button) return;
@@ -762,26 +940,28 @@ if (plantForm) {
 		humiditySlider.value = log.humedad_suelo_pct || 0;
 		humidityValue.textContent = `${humiditySlider.value}%`;
 		document.getElementById('observation').value = log.observacion || '';
+		updateQuestPanel(log.retos_completados || []);
+		activeChallenge = parseChallenges(log.retos_completados)[0] || 'color';
 		document.querySelector('[data-view="plant"]')?.click();
+		openQuestModal(activeChallenge);
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	});
 
 	plantForm.addEventListener('submit', async (event) => {
 		event.preventDefault();
 		const temperature = document.getElementById('inp-temp').value;
-
-		if (!temperature) {
-			formError.style.display = 'block';
-			return;
-		}
-
 		formError.style.display = 'none';
-		document.getElementById('m-temp').textContent = `${Number.parseFloat(temperature).toFixed(1)}°`;
+		if (temperature) document.getElementById('m-temp').textContent = `${Number.parseFloat(temperature).toFixed(1)}°`;
 		document.getElementById('m-hum').textContent = `${humiditySlider.value}%`;
 		const waterAmount = document.getElementById('water-amount').value;
 		const wateringTime = document.getElementById('watering-time').value;
-		if (!waterAmount || !wateringTime) {
+		if (activeChallenge === 'riego' && (!waterAmount || !wateringTime)) {
 			formError.textContent = 'Indica cuánta agua aplicaste y a qué hora.';
+			formError.style.display = 'block';
+			return;
+		}
+		if (activeChallenge === 'foto' && !dailyPhoto?.files?.[0]) {
+			formError.textContent = 'Agrega una foto para completar esta misión.';
 			formError.style.display = 'block';
 			return;
 		}
@@ -791,48 +971,65 @@ if (plantForm) {
 			return;
 		}
 		const hasPhoto = Boolean(dailyPhoto?.files?.[0]);
+		const payloadDate = dailyLogDate.value || todayIso();
+		const currentLog = dailyLogs.find((log) => String(log.fecha_bitacora || '').slice(0, 10) === payloadDate);
+		const logId = editingLogId || currentLog?.id || null;
+		const completedChallenges = [...new Set([...parseChallenges(currentLog?.retos_completados), ...selectedChallenges, activeChallenge].filter(Boolean))];
+		const missionObservation = document.getElementById('observation').value.trim();
+		const standardizedCurrentObservation = standardizeObservationText(currentLog);
+		const previousObservations = standardizedCurrentObservation ? standardizedCurrentObservation.split(' - ').map((note) => note.trim()).filter(Boolean) : [];
+		const detail = challengeDetails[activeChallenge];
+		const labeledObservation = missionObservation && detail ? `${detail.label}: ${missionObservation}` : '';
+		const observations = labeledObservation && !previousObservations.includes(labeledObservation)
+			? [...previousObservations, labeledObservation]
+			: previousObservations;
 
 		try {
 			const payload = {
 				id_proyecto: currentProjectId,
 				id_usuario: DEFAULT_USER_ID,
-				fecha_bitacora: dailyLogDate.value || todayIso(),
-				temperatura_ambiente_c: Number(temperature),
-				agua_aplicada_ml: Number(waterAmount),
-				hora_riego: wateringTime,
-				humedad_suelo_pct: Number(humiditySlider.value),
-				color_hojas: getSelectedLeafColor(),
-				observacion: document.getElementById('observation').value.trim(),
+				fecha_bitacora: payloadDate,
+				temperatura_ambiente_c: temperature ? Number(temperature) : currentLog?.temperatura_ambiente_c ?? null,
+				agua_aplicada_ml: activeChallenge === 'riego' ? Number(waterAmount) : currentLog?.agua_aplicada_ml ?? null,
+				hora_riego: activeChallenge === 'riego' ? wateringTime : currentLog?.hora_riego || null,
+				humedad_suelo_pct: activeChallenge === 'riego' ? Number(humiditySlider.value) : currentLog?.humedad_suelo_pct ?? Number(humiditySlider.value),
+				color_hojas: activeChallenge === 'color' ? getSelectedLeafColor() : currentLog?.color_hojas || getSelectedLeafColor(),
+				observacion: observations.join(' - '),
+				retos_completados: completedChallenges,
 			};
-			const response = await fetch(editingLogId ? `/api/monitoreo/bitacoras/${editingLogId}` : '/api/monitoreo/bitacoras', {
-				method: editingLogId ? 'PUT' : 'POST',
+			const response = await fetch(logId ? `/api/monitoreo/bitacoras/${logId}` : '/api/monitoreo/bitacoras', {
+				method: logId ? 'PUT' : 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload),
 			});
 			const result = await response.json();
 			if (!response.ok) throw new Error(result.error || 'No fue posible guardar la bitácora.');
+			let photoWarning = '';
 			if (hasPhoto) {
 				const photoData = new FormData();
 				photoData.append('foto', dailyPhoto.files[0]);
 				photoData.append('id_proyecto', currentProjectId);
 				photoData.append('id_usuario', DEFAULT_USER_ID);
-				photoData.append('fecha_fotografia', `${payload.fecha_bitacora}T12:00:00`);
+				photoData.append('fecha_bitacora', payload.fecha_bitacora);
+				photoData.append('fecha_fotografia', localDateTimeForDatabase());
 				const photoResponse = await fetch('/api/monitoreo/fotografias', { method: 'POST', body: photoData });
-				if (!photoResponse.ok) throw new Error('La bitácora se guardó, pero no fue posible guardar la foto.');
+				if (!photoResponse.ok) photoWarning = ' La bitácora se guardó, pero no fue posible guardar la foto.';
 			}
 			resetDailyLogForm();
 			await loadDailyLogs();
 			await loadPhotoAlbum();
+			formError.textContent = `${hasPhoto ? 'Bitácora y foto' : 'Bitácora'} guardadas correctamente.${photoWarning}`;
 		} catch (error) {
 			formError.textContent = error.message;
 			formError.style.display = 'block';
 			return;
 		}
-		formError.textContent = `${hasPhoto ? 'Bitácora y foto' : 'Bitácora'} guardadas correctamente. El formulario está listo para otro día.`;
+		formError.textContent += ' El formulario está listo para otro día.';
 		formError.style.color = '#3b6d11';
 		formError.style.display = 'block';
 		saveButton.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>Guardado';
 		saveButton.style.background = '#27500a';
+		closeQuestModal();
 
 		window.setTimeout(() => {
 			saveButton.innerHTML = '<i class="ti ti-device-floppy" aria-hidden="true"></i>Guardar registro';

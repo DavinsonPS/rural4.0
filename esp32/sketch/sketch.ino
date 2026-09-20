@@ -44,15 +44,6 @@ bool initializeLightSensor() {
   return false;
 }
 
-float readSimulatedLight() {
-  int raw = analogRead(LIGHT_PIN);
-  if (raw <= 0) return 100000.0f;
-  float voltage = raw / 4095.0f * 3.3f;
-  if (voltage >= 3.29f) return 0.1f;
-  float resistance = 2000.0f * voltage / (1.0f - voltage / 3.3f);
-  float lux = 50.0f * pow(10.0f, 0.7f) * pow(1000.0f / resistance, 1.0f / 0.7f);
-  return isfinite(lux) && lux >= 0.0f ? lux : NAN;
-}
 #define MATRIX_PIN 13
 #define LED_PIN 2
 #define SD_CS 5
@@ -64,7 +55,6 @@ float readSimulatedLight() {
 extern Adafruit_NeoPixel matrix;
 
 const char *DEFAULT_API_URL = "https://rural40.ml-ware.com";
-const char *SIMULATION_WIFI = "Wokwi-GUEST";
 // Debe coincidir con DEVICE_PROVISIONING_KEY del backend.
 // No es la api_key operativa del dispositivo.
 const char *DEFAULT_PROVISIONING_KEY = "Rural-pr0vision1ng/k3y";
@@ -81,7 +71,9 @@ bool lightReady = false;
 unsigned long lastReading = 0;
 unsigned long lastConfigurationCheck = 0;
 unsigned long lastOtaCheck = 0;
-const char *FIRMWARE_VERSION = "1.0.0";
+const char *FIRMWARE_VERSION = "1.0.1";
+
+bool provisionDevice();
 
 uint32_t ledColorFromName(const char *name) {
   if (strcmp(name, "verde") == 0) return matrix.Color(0, 255, 0);
@@ -118,6 +110,11 @@ void applyRemoteConfiguration() {
     } else {
       Serial.println("Configuracion LED invalida recibida.");
     }
+  } else if (status == 401) {
+    Serial.println("API configuracion: clave invalida; reprovisionando dispositivo.");
+    deviceKey = "";
+    preferences.putString("device_key", deviceKey);
+    provisionDevice();
   } else if (status > 0) {
     Serial.printf("API configuracion: HTTP %d\n", status);
   }
@@ -136,10 +133,13 @@ void configureConnection() {
   manager.setConnectTimeout(20);
   manager.setConfigPortalTimeout(300);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(SIMULATION_WIFI, "");
-  unsigned long start = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) delay(250);
-  if (WiFi.status() != WL_CONNECTED && !manager.autoConnect("Rural40-Setup")) return;
+  Serial.println("Conectando a Wi-Fi guardado o abriendo Rural40-Setup...");
+  if (WiFi.status() != WL_CONNECTED && !manager.autoConnect("Rural40-Setup")) {
+    Serial.println("No fue posible configurar Wi-Fi. Reinicia para intentarlo de nuevo.");
+    return;
+  }
+  Serial.print("Wi-Fi conectado. IP: ");
+  Serial.println(WiFi.localIP());
   apiUrl = String(apiParameter.getValue());
   deviceKey = String(keyParameter.getValue());
   apiUrl.trim();
@@ -271,13 +271,16 @@ void checkForFirmwareUpdate() {
 }
 
 String dateTimeText(const DateTime &value) {
+  if (value.year() < 2024 || value.month() < 1 || value.month() > 12 || value.day() < 1 || value.day() > 31) {
+    return dateTimeText(DateTime(F(__DATE__), F(__TIME__)));
+  }
   char buffer[20];
   snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %02d:%02d:%02d", value.year(), value.month(), value.day(), value.hour(), value.minute(), value.second());
   return String(buffer);
 }
 
-bool postReading(const String &payload) {
-  if (WiFi.status() != WL_CONNECTED || apiUrl.length() == 0 || deviceKey.length() == 0) return false;
+int postReading(const String &payload) {
+  if (WiFi.status() != WL_CONNECTED || apiUrl.length() == 0 || deviceKey.length() == 0) return 0;
   HTTPClient http;
   String endpoint = apiUrl + "/api/monitoreo/lecturas";
   WiFiClientSecure secureClient;
@@ -292,7 +295,7 @@ bool postReading(const String &payload) {
   int status = http.POST(payload);
   Serial.printf("API lectura: HTTP %d\n", status);
   http.end();
-  return status >= 200 && status < 300;
+  return status;
 }
 
 void queueReading(const String &payload) {
@@ -319,7 +322,8 @@ void flushReadingQueue() {
     String payload = source.readStringUntil('\n');
     payload.trim();
     if (payload.length() == 0) continue;
-    if (failed || !postReading(payload)) {
+    int status = postReading(payload);
+    if (failed || status < 200 || status >= 300) {
       failed = true;
       pending.println(payload);
       retained++;
@@ -336,18 +340,37 @@ void flushReadingQueue() {
 }
 
 bool readSensors(float &temperature, float &humidity, int &soil, float &lightLux) {
+  temperature = 0.0f;
+  humidity = 0.0f;
+  soil = 0;
+  lightLux = 0.0f;
+  bool dhtReady = false;
   for (int attempt = 0; attempt < 3; attempt++) {
     temperature = dht.readTemperature();
     humidity = dht.readHumidity();
     if (!isnan(temperature) && !isnan(humidity) && temperature >= 0.0f && temperature <= 50.0f && humidity >= 0.0f && humidity <= 100.0f) {
-      soil = constrain(map(analogRead(SOIL_PIN), 4095, 0, 0, 100), 0, 100);
-      lightLux = lightReady ? lightMeter.readLightLevel() : readSimulatedLight();
-      if (lightLux < 0.0f) lightLux = NAN;
-      return true;
+      dhtReady = true;
+      break;
     }
     delay(1500);
   }
-  return false;
+  if (!dhtReady) {
+    temperature = 0.0f;
+    humidity = 0.0f;
+    Serial.println("DHT22 no disponible: se enviaran sensores en cero.");
+    return true;
+  }
+
+  int soilRaw = analogRead(SOIL_PIN);
+  if (soilRaw > 0 && soilRaw < 4095) {
+    soil = constrain(map(soilRaw, 4095, 0, 0, 100), 0, 100);
+  }
+
+  if (lightReady) {
+    float measuredLight = lightMeter.readLightLevel();
+    if (isfinite(measuredLight) && measuredLight >= 0.0f) lightLux = measuredLight;
+  }
+  return true;
 }
 
 void takeReading() {
@@ -355,13 +378,20 @@ void takeReading() {
   float humidity;
   int soil;
   float lightLux;
-  if (!readSensors(temperature, humidity, soil, lightLux)) {
-    Serial.println("Lectura descartada: DHT22 devolvio un valor invalido.");
-    return;
-  }
-  String lightValue = isnan(lightLux) ? "null" : String(lightLux, 1);
+  readSensors(temperature, humidity, soil, lightLux);
+  if (!isfinite(temperature)) temperature = 0.0f;
+  if (!isfinite(humidity)) humidity = 0.0f;
+  if (!isfinite(lightLux) || lightLux < 0.0f) lightLux = 0.0f;
+  String lightValue = String(lightLux, 1);
   String payload = "{\"fecha_lectura\":\"" + dateTimeText(rtc.now()) + "\",\"temperatura_c\":" + String(temperature, 1) + ",\"humedad_ambiente_pct\":" + String(humidity, 1) + ",\"humedad_suelo_pct\":" + String(soil) + ",\"intensidad_luz_lux\":" + lightValue + "}";
-  if (!postReading(payload)) queueReading(payload);
+  int status = postReading(payload);
+  if (status == 401) {
+    Serial.println("API lectura: clave invalida; reprovisionando dispositivo.");
+    deviceKey = "";
+    preferences.putString("device_key", deviceKey);
+    if (provisionDevice()) status = postReading(payload);
+  }
+  if (status < 200 || status >= 300) queueReading(payload);
   Serial.println(payload);
 }
 
@@ -375,7 +405,7 @@ void setup() {
   if (!rtcReady) Serial.println("RTC DS1307 no encontrado");
   scanI2C();
   lightReady = initializeLightSensor();
-  if (!lightReady) Serial.println("Usando fotoresistencia analogica de Wokwi en GPIO 35.");
+  if (!lightReady) Serial.println("BH1750 no disponible: la luz se enviara en cero.");
   if (rtcReady && !rtc.isrunning()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   matrix.begin();
   matrix.setBrightness(255);
