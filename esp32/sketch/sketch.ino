@@ -60,7 +60,7 @@ const char *DEFAULT_API_URL = "https://rural40.ml-ware.com";
 const char *DEFAULT_PROVISIONING_KEY = "Rural-pr0vision1ng/k3y";
 const char *DEFAULT_DEVICE_KEY = "";
 const char *READING_QUEUE = "/readings.queue";
-DHT dht(DHT_PIN, DHT22);
+DHT dht(DHT_PIN, DHT11);
 RTC_DS1307 rtc;
 Adafruit_NeoPixel matrix(NUM_PIXELS, MATRIX_PIN, NEO_GRB + NEO_KHZ800);
 Preferences preferences;
@@ -123,13 +123,9 @@ void applyRemoteConfiguration() {
 
 void configureConnection() {
   preferences.begin("rural40", false);
-  apiUrl = preferences.getString("api_url", DEFAULT_API_URL);
+  apiUrl = DEFAULT_API_URL;
   deviceKey = preferences.getString("device_key", DEFAULT_DEVICE_KEY);
   WiFiManager manager;
-  WiFiManagerParameter apiParameter("api_url", "URL API Rural40", apiUrl.c_str(), 160);
-  WiFiManagerParameter keyParameter("device_key", "Clave del dispositivo", deviceKey.c_str(), 80);
-  manager.addParameter(&apiParameter);
-  manager.addParameter(&keyParameter);
   manager.setConnectTimeout(20);
   manager.setConfigPortalTimeout(300);
   WiFi.mode(WIFI_STA);
@@ -140,14 +136,6 @@ void configureConnection() {
   }
   Serial.print("Wi-Fi conectado. IP: ");
   Serial.println(WiFi.localIP());
-  apiUrl = String(apiParameter.getValue());
-  deviceKey = String(keyParameter.getValue());
-  apiUrl.trim();
-  apiUrl.replace("/api/health/db", "");
-  apiUrl.replace("/api/health", "");
-  if (apiUrl.endsWith("/")) apiUrl.remove(apiUrl.length() - 1);
-  preferences.putString("api_url", apiUrl);
-  preferences.putString("device_key", deviceKey);
 }
 
 bool provisionDevice() {
@@ -348,7 +336,10 @@ bool readSensors(float &temperature, float &humidity, int &soil, float &lightLux
   for (int attempt = 0; attempt < 3; attempt++) {
     temperature = dht.readTemperature();
     humidity = dht.readHumidity();
-    if (!isnan(temperature) && !isnan(humidity) && temperature >= 0.0f && temperature <= 50.0f && humidity >= 0.0f && humidity <= 100.0f) {
+    bool validDhtReading = !isnan(temperature) && !isnan(humidity) &&
+                 temperature >= 0.0f && temperature <= 50.0f &&
+                           humidity >= 0.0f && humidity <= 100.0f;
+    if (validDhtReading) {
       dhtReady = true;
       break;
     }
@@ -357,8 +348,7 @@ bool readSensors(float &temperature, float &humidity, int &soil, float &lightLux
   if (!dhtReady) {
     temperature = 0.0f;
     humidity = 0.0f;
-    Serial.println("DHT22 no disponible: se enviaran sensores en cero.");
-    return true;
+    Serial.println("DHT11 no disponible: se enviaran sensores en cero.");
   }
 
   int soilRaw = analogRead(SOIL_PIN);

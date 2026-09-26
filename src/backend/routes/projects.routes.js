@@ -206,10 +206,10 @@ router.get('/resumen/:projectId', async (request, response) => {
 		const [readingRows] = await pool.query(
 			`SELECT temperatura_c, humedad_ambiente_pct, humedad_suelo_pct,
 					intensidad_luz_lux, altura_planta_cm, agua_aplicada_ml,
-					observacion, fecha_lectura
+					observacion, fecha_registro AS fecha_lectura
 				 FROM tblh_registros_monitoreo
 				 WHERE id_proyecto = ? AND estado = 1
-				 ORDER BY fecha_lectura DESC
+				 ORDER BY fecha_registro DESC
 				 LIMIT 1`,
 			[projectId],
 		);
@@ -249,6 +249,36 @@ router.get('/resumen/:projectId', async (request, response) => {
 	} catch (error) {
 		console.error('Project summary failed:', error.message);
 		return response.status(500).json({ error: 'No fue posible consultar el resumen del proyecto.' });
+	}
+});
+
+router.get('/resumen/:projectId/lecturas', async (request, response) => {
+	const projectId = Number(request.params.projectId);
+	const userId = Number(request.query.usuario_id);
+	if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+		return response.status(400).json({ error: 'Proyecto y usuario son obligatorios.' });
+	}
+
+	try {
+		const [projectRows] = await pool.query(
+			'SELECT id FROM tblh_proyectos WHERE id = ? AND id_usuario = ? AND estado = 1 LIMIT 1',
+			[projectId, userId],
+		);
+		if (projectRows.length === 0) return response.status(404).json({ error: 'Proyecto no encontrado.' });
+
+		const [readingRows] = await pool.query(
+			`SELECT temperatura_c, humedad_ambiente_pct, humedad_suelo_pct,
+					intensidad_luz_lux, fecha_registro AS fecha_lectura
+				 FROM tblh_registros_monitoreo
+				 WHERE id_proyecto = ? AND estado = 1
+				 ORDER BY fecha_registro DESC
+				 LIMIT 2016`,
+			[projectId],
+		);
+		return response.json(readingRows.reverse());
+	} catch (error) {
+		console.error('Monitoring history lookup failed:', error.message);
+		return response.status(500).json({ error: 'No fue posible consultar el historial de monitoreo.' });
 	}
 });
 

@@ -35,12 +35,10 @@ int lastPhotoDay = -1;
 
 void configureConnection() {
   preferences.begin("rural40", false);
-  apiUrl = preferences.getString("api_url", DEFAULT_API_URL);
+  apiUrl = DEFAULT_API_URL;
   deviceKey = preferences.getString("device_key", DEFAULT_DEVICE_KEY);
   WiFiManager manager;
-  WiFiManagerParameter apiParameter("api_url", "URL API Rural40", apiUrl.c_str(), 160);
   WiFiManagerParameter keyParameter("device_key", "Clave del dispositivo", deviceKey.c_str(), 80);
-  manager.addParameter(&apiParameter);
   manager.addParameter(&keyParameter);
   manager.setConnectTimeout(20);
   WiFi.mode(WIFI_STA);
@@ -48,13 +46,7 @@ void configureConnection() {
   unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) delay(250);
   if (WiFi.status() != WL_CONNECTED) manager.autoConnect("Rural40-Camera-Setup");
-  apiUrl = String(apiParameter.getValue());
   deviceKey = String(keyParameter.getValue());
-  apiUrl.trim();
-  apiUrl.replace("/api/health/db", "");
-  apiUrl.replace("/api/health", "");
-  if (apiUrl.endsWith("/")) apiUrl.remove(apiUrl.length() - 1);
-  preferences.putString("api_url", apiUrl);
   preferences.putString("device_key", deviceKey);
   configTime(-5 * 3600, 0, "pool.ntp.org", "time.nist.gov");
 }

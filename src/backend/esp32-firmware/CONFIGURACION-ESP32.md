@@ -5,7 +5,7 @@ Este documento explica cómo cargar el firmware binario al ESP32 y cómo dejarlo
 ## 1. Requisitos
 
 - Una placa ESP32 conectada por USB al equipo
-- El archivo `firmware.bin` generado en esta carpeta
+- La imagen `first-install/first-flash.bin` para primera instalación USB
 - Un navegador moderno
 - Opcional: `esptool` si prefieres hacerlo desde consola
 - Una red Wi-Fi de 2.4 GHz con acceso a internet
@@ -38,6 +38,8 @@ En el servidor de producción, la URL base es:
 https://rural40.ml-ware.com/api/firmware/download
 ```
 
+Para la primera instalación por USB, descarga `GET /api/firmware/download-inicial`. Ese endpoint entrega la imagen combinada `first-flash.bin`; no es el binario OTA.
+
 Y la ruta física del proyecto en el hosting es:
 
 ```text
@@ -64,47 +66,58 @@ https://espressif.github.io/esptool-js/
 
 1. Conecta el ESP32 al puerto USB del equipo.
 2. Abre la página de esptool-js.
-3. En la interfaz selecciona:
-   - el puerto COM / serial del ESP32
-   - el archivo `firmware.bin`
-4. Haz clic en `Connect` o `Conectar`.
-5. Si el ESP32 no entra en modo de programación, presiona:
-   - `BOOT` + `EN`/`RESET`
-   - o usa el botón de bootloader del módulo
-6. Selecciona el binario en la sección de upload.
-7. Inicia la carga.
-8. Cuando termine, reinicia la placa.
+3. Descarga `first-flash.bin` desde el panel de primera instalación.
+4. Haz clic en `Connect` y selecciona el puerto COM / serial del ESP32.
+5. Agrega `first-flash.bin` en la lista de archivos y cambia `Flash Address` a `0x0`.
+6. Pulsa `Program` y espera a que termine la escritura.
+7. Si no entra en modo de programación, mantén `BOOT`, pulsa y suelta `EN`/`RESET` y luego suelta `BOOT`.
+8. Cuando termine, desconecta el USB, espera unos segundos y vuelve a conectarlo para reiniciar el ESP32.
 
 ### Importante
 
-Este proceso es por USB físico. No se flashea por WiFi al primer arranque.
+No dejes la dirección predeterminada `0x1000` al cargar la imagen combinada. La imagen OTA `firmware.bin` es solo la aplicación y no se usa para el primer flasheo. Este proceso requiere USB físico; no se flashea por WiFi al primer arranque.
+
+Como alternativa avanzada, se pueden cargar los cuatro componentes individuales desde `first-install/` con estas direcciones:
+
+| Archivo | Dirección |
+|---|---:|
+| `bootloader.bin` | `0x1000` |
+| `partitions.bin` | `0x8000` |
+| `boot_app0.bin` | `0xE000` |
+| `application.bin` | `0x10000` |
 
 ---
 
 ## 4. Configuración Wi-Fi del ESP32 físico
 
-Después de cargar el firmware, abre el monitor serial a `115200` baudios y reinicia la placa. Si no tiene una red guardada, creará una red temporal llamada:
+Después de cargar el firmware, desconecta y vuelve a conectar el USB para reiniciar la placa. En el primer arranque, si no tiene una red guardada, creará una red temporal llamada:
 
 ```text
 Rural40-Setup
 ```
 
-Conéctate a esa red desde un celular o computador y abre:
+1. Espera a que aparezca `Rural40-Setup` en las redes Wi-Fi disponibles.
+2. Conecta el celular o computador a esa red. Si el sistema avisa que no hay internet, selecciona permanecer conectado; es normal porque esta red solo abre el portal de configuración.
+3. Abre en el navegador:
 
 ```text
 http://192.168.4.1
 ```
 
-En el portal configura:
+4. En el portal configura:
 
 ```text
 SSID: tu red Wi-Fi de 2.4 GHz
 Contraseña: contraseña de tu router
-URL API: https://rural40.ml-ware.com
-Clave del dispositivo: dejar vacía en el primer arranque
 ```
 
-La clave del dispositivo se obtiene automáticamente durante la provisión. No uses la contraseña Wi-Fi ni las claves internas del backend en ese campo. Si la placa conserva una configuración anterior, borra la memoria flash antes de cargar el firmware o restablece la configuración Wi-Fi.
+La URL de Rural 4.0 ya está configurada en el firmware y no se solicita en el portal.
+
+5. Guarda la configuración y espera a que la placa se reinicie o cierre el portal. El teléfono puede volver a conectarse a su red Wi-Fi habitual.
+
+El portal solo solicita el nombre y la contraseña de la red Wi-Fi. La clave del dispositivo se obtiene automáticamente durante la provisión y se guarda en la placa; no es necesario ingresarla. Si la placa conserva credenciales Wi-Fi anteriores y no crea el portal, borra la memoria flash antes de cargar el firmware o restablece su configuración Wi-Fi.
+
+Para comprobar el arranque, abre el monitor serial a `115200` baudios antes de reiniciar o reconectar el USB.
 
 El monitor serial debe mostrar mensajes similares a:
 
@@ -122,13 +135,13 @@ Si prefieres `esptool` desde consola:
 ### Windows
 
 ```powershell
-esptool.py --chip esp32 --port COM3 --baud 460800 write_flash 0 .\firmware.bin
+esptool.py --chip esp32 --port COM3 --baud 460800 write_flash 0x1000 .\bootloader.bin 0x8000 .\partitions.bin 0xE000 .\boot_app0.bin 0x10000 .\application.bin
 ```
 
 ### Linux / macOS
 
 ```bash
-esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash 0 ./firmware.bin
+esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash 0x1000 ./bootloader.bin 0x8000 ./partitions.bin 0xE000 ./boot_app0.bin 0x10000 ./application.bin
 ```
 
 Si no tienes `esptool` instalado:
@@ -180,9 +193,10 @@ npm run firmware:manifest -- 1.0.1
 }
 ```
 
-5. Flashea esa imagen al ESP32 por USB.
-6. El ESP32 intenta conectarse a la red y luego se registra con la API.
-7. El sistema puede actualizar firmware por OTA cuando sea necesario.
+5. Para primera instalación, publica también todos los archivos de `first-install/` sin cambiar sus nombres.
+6. Flashea `first-flash.bin` por USB en `0x0`, o carga los cuatro componentes en sus offsets documentados.
+7. El ESP32 intenta conectarse a la red y luego se registra con la API.
+8. El sistema puede actualizar firmware por OTA cuando sea necesario.
 
 ---
 
@@ -190,8 +204,8 @@ npm run firmware:manifest -- 1.0.1
 
 Para alumnos o docentes, lo más sencillo es:
 
-- entregar el `firmware.bin` final
-- indicarles que lo carguen desde esptool-js o con el flasher de su preferencia
+- entregarles `first-flash.bin` para la primera carga por USB y especificar `Flash Address: 0x0`
+- reservar `firmware.bin` para las actualizaciones OTA del dispositivo
 - no exigirles que compilen ni instalen bibliotecas si no es necesario
 
 Esto reduce la fricción y evita errores de configuración.
