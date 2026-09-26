@@ -107,9 +107,10 @@ Para detenerlo, presiona `Ctrl+C`.
 1. Abre `http://localhost:3000`.
 2. Registra o inicia sesión con un usuario existente.
 3. Crea o selecciona un proyecto.
-4. Abre `Mi planta` y guarda una bitácora.
-5. Verifica el registro en `Mis registros` y el estado de la rutina diaria.
-6. Si usas un ESP32, registra y vincula el dispositivo desde la sección de hardware.
+4. Abre `Mi planta` para consultar las mediciones y gráficas del proyecto.
+5. Abre `Misiones` para revisar el estado de la planta, el historial de retos y completar los objetivos diarios.
+6. Verifica las bitácoras guardadas en `Mis registros`.
+7. Si usas un ESP32, registra y vincula el dispositivo desde la sección de hardware.
 
 El backend guarda las fotografías en `src/backend/uploads/photos/`. Esta carpeta debe tener permisos de escritura.
 
@@ -127,6 +128,16 @@ Comprobar la sintaxis del dashboard:
 ```powershell
 node --check src/frontend/js/dashboard.js
 ```
+
+## Pruebas automatizadas
+
+Desde la carpeta raíz, ejecuta la prueba del historial de monitoreo:
+
+```powershell
+node --test src/backend/tests/monitoring-history.test.js
+```
+
+La prueba verifica que la consulta requiera el usuario propietario del proyecto, rechace accesos de otros usuarios y devuelva las lecturas en orden cronológico. El backend no tiene configurado un script `npm test`; por eso se ejecuta directamente con el test runner integrado de Node.js.
 
 ## Problemas frecuentes
 

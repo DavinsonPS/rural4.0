@@ -6,10 +6,10 @@ const plantForm = document.getElementById('plant-form');
 const dailyLogDate = document.getElementById('daily-log-date');
 const dailyPhoto = document.getElementById('daily-photo');
 const dailyLogsList = document.getElementById('daily-logs-list');
-const dailyLogCareStatus = document.getElementById('daily-log-care-status');
 const questItems = document.querySelectorAll('.quest-item');
 const questProgressFill = document.getElementById('quest-progress-fill');
 const questProgressLabel = document.getElementById('quest-progress-label');
+const questOverallStatus = document.getElementById('quest-overall-status');
 const questLevel = document.getElementById('quest-level');
 const questMessage = document.getElementById('quest-message');
 const questModal = document.getElementById('quest-modal');
@@ -64,6 +64,10 @@ const projectDeviceStatus = document.getElementById('project-device-status');
 const topbarTitle = document.querySelector('.topbar-title');
 const topbarSub = document.querySelector('.topbar-sub');
 const studentDataStatus = document.getElementById('student-data-status');
+const monitoringDashboard = document.querySelector('.monitoring-dashboard');
+const monitoringRangeButtons = document.querySelectorAll('[data-monitor-range]');
+const monitoringEmptyState = document.getElementById('monitor-empty-state');
+const monitoringLastReading = document.getElementById('monitor-last-reading');
 const userNameElement = document.querySelector('.user-name');
 const registrationKeyInput = document.getElementById('device-registration-key');
 const logoutButton = document.getElementById('logout-button');
@@ -77,6 +81,8 @@ let projectFormModal;
 let projectsModal;
 let currentDashboardView = 'student';
 let dailyLogs = [];
+let monitoringReadings = [];
+let monitoringRangeHours = 24;
 let editingLogId = null;
 let selectedChallenges = [];
 let activeChallenge = null;
@@ -220,8 +226,114 @@ function setMetricValues(valueText = 'Sin datos') {
 	document.getElementById('m-hum').textContent = valueText;
 	document.getElementById('m-luz').textContent = valueText;
 	document.getElementById('m-amb-hum').textContent = valueText;
+	document.getElementById('soil-kpi-note').textContent = 'humedad del suelo';
 	if (humiditySlider) humiditySlider.value = 0;
 	if (humidityValue) humidityValue.textContent = '0%';
+}
+
+function getVisibleMonitoringReadings() {
+	const cutoff = Date.now() - monitoringRangeHours * 60 * 60 * 1000;
+	return monitoringReadings.filter((reading) => {
+		const timestamp = new Date(reading.fecha_lectura).getTime();
+		return Number.isFinite(timestamp) && timestamp >= cutoff;
+	});
+}
+
+function renderMonitoringChart(containerId, readings, field, settings) {
+	const container = document.getElementById(containerId);
+	if (!container) return;
+	const series = readings
+		.map((reading) => ({
+			time: new Date(reading.fecha_lectura).getTime(),
+			value: reading[field] === null || reading[field] === undefined || reading[field] === ''
+				? Number.NaN
+				: Number(reading[field]),
+		}))
+		.filter((point) => Number.isFinite(point.time) && Number.isFinite(point.value));
+
+	if (!series.length) {
+		container.innerHTML = '<p class="chart-no-data">Aún no hay mediciones en este periodo.</p>';
+		return;
+	}
+
+	const width = 720;
+	const height = 230;
+	const left = 54;
+	const right = 14;
+	const top = 14;
+	const bottom = 34;
+	const plotWidth = width - left - right;
+	const plotHeight = height - top - bottom;
+	const firstReadingTime = series[0].time;
+	const lastReadingTime = series.at(-1).time;
+	const readingSpan = lastReadingTime - firstReadingTime;
+	const minimumSpan = 5 * 60 * 1000;
+	const chartStartTime = readingSpan < minimumSpan
+		? firstReadingTime - (minimumSpan - readingSpan) / 2
+		: firstReadingTime;
+	const chartEndTime = readingSpan < minimumSpan
+		? lastReadingTime + (minimumSpan - readingSpan) / 2
+		: lastReadingTime;
+	const chartSpan = chartEndTime - chartStartTime;
+	let minValue = settings.min;
+	let maxValue = settings.max;
+	if (settings.dynamic) {
+		maxValue = Math.max(settings.min + settings.step, Math.ceil(Math.max(...series.map((point) => point.value)) / settings.step) * settings.step);
+	}
+	const x = (time) => left + ((time - chartStartTime) / chartSpan) * plotWidth;
+	const y = (value) => top + ((maxValue - value) / (maxValue - minValue)) * plotHeight;
+	const linePath = series.map((point, index) => `${index ? 'L' : 'M'} ${x(point.time).toFixed(1)} ${y(point.value).toFixed(1)}`).join(' ');
+	const areaPath = `${linePath} L ${x(series.at(-1).time).toFixed(1)} ${(top + plotHeight).toFixed(1)} L ${x(series[0].time).toFixed(1)} ${(top + plotHeight).toFixed(1)} Z`;
+	const gridLines = Array.from({ length: 5 }, (_, index) => {
+		const value = maxValue - ((maxValue - minValue) / 4) * index;
+		const yPosition = top + (plotHeight / 4) * index;
+		return `<g><line x1="${left}" y1="${yPosition}" x2="${width - right}" y2="${yPosition}" class="chart-grid-line"/><text x="${left - 10}" y="${yPosition + 4}" class="chart-axis-label" text-anchor="end">${settings.format(value)}</text></g>`;
+	}).join('');
+	const timeLabels = Array.from({ length: 5 }, (_, index) => {
+		const timestamp = chartStartTime + (chartSpan / 4) * index;
+		const date = new Date(timestamp);
+		const label = monitoringRangeHours > 24
+			? date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+			: date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+		return `<text x="${left + (plotWidth / 4) * index}" y="${height - 8}" class="chart-axis-label" text-anchor="middle">${label}</text>`;
+	}).join('');
+	const lastPoint = series.at(-1);
+	container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="presentation" aria-hidden="true"><defs><linearGradient id="${containerId}-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="${settings.color}" stop-opacity=".24"/><stop offset="100%" stop-color="${settings.color}" stop-opacity=".02"/></linearGradient></defs>${gridLines}<path d="${areaPath}" fill="url(#${containerId}-fill)"/><path d="${linePath}" fill="none" stroke="${settings.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${series.length === 1 ? `<circle cx="${x(lastPoint.time)}" cy="${y(lastPoint.value)}" r="6" fill="${settings.color}"/>` : `<circle cx="${x(lastPoint.time)}" cy="${y(lastPoint.value)}" r="5" fill="white" stroke="${settings.color}" stroke-width="3"/>`}${timeLabels}</svg>`;
+}
+
+function renderMonitoringDashboard(readings = monitoringReadings) {
+	monitoringReadings = Array.isArray(readings) ? readings : [];
+	const latest = monitoringReadings.at(-1);
+	if (latest) {
+		document.getElementById('m-temp').textContent = formatMetricValue(latest.temperatura_c, ' °C');
+		document.getElementById('m-hum').textContent = formatMetricValue(latest.humedad_suelo_pct, '%');
+		document.getElementById('m-luz').textContent = formatMetricValue(latest.intensidad_luz_lux, ' lx');
+		document.getElementById('m-amb-hum').textContent = formatMetricValue(latest.humedad_ambiente_pct, '%');
+		const soilValue = Number(latest.humedad_suelo_pct);
+		document.getElementById('soil-kpi-note').textContent = Number.isFinite(soilValue)
+			? soilValue < 30 ? '¡Un traguito de agua!' : soilValue > 80 ? '¡Tierra bien mojadita!' : '¡La tierra está contenta!'
+			: 'humedad del suelo';
+		if (humiditySlider && Number.isFinite(soilValue)) humiditySlider.value = String(Math.max(0, Math.min(100, soilValue)));
+		if (humidityValue && humiditySlider) humidityValue.textContent = `${humiditySlider.value}%`;
+	} else {
+		setMetricValues();
+		if (monitoringLastReading) monitoringLastReading.textContent = 'Esperando la primera medición';
+	}
+
+	const visibleReadings = getVisibleMonitoringReadings();
+	const hasVisibleData = visibleReadings.some((reading) => ['temperatura_c', 'humedad_suelo_pct', 'intensidad_luz_lux'].some((field) => reading[field] !== null && reading[field] !== undefined));
+	if (monitoringLastReading) {
+		const countLabel = `${visibleReadings.length} ${visibleReadings.length === 1 ? 'medición' : 'mediciones'} en este periodo`;
+		const latestLabel = latest
+			? `Último dato: ${new Date(latest.fecha_lectura).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}`
+			: 'Esperando la primera medición';
+		monitoringLastReading.textContent = `${countLabel} · ${latestLabel}`;
+	}
+	if (monitoringEmptyState) monitoringEmptyState.hidden = hasVisibleData;
+	renderMonitoringChart('temperature-chart', visibleReadings, 'temperatura_c', { min: 0, max: 50, step: 10, color: '#e27644', format: (value) => `${Math.round(value)}°` });
+	renderMonitoringChart('soil-chart', visibleReadings, 'humedad_suelo_pct', { min: 0, max: 100, step: 20, color: '#219a86', format: (value) => `${Math.round(value)}%` });
+	renderMonitoringChart('light-chart', visibleReadings, 'intensidad_luz_lux', { min: 0, max: 100, step: 100, dynamic: true, color: '#d39a18', format: (value) => `${Math.round(value)}` });
+	updatePlantHealth(latest);
 }
 
 function setStudentDataStatus(label, state = 'idle') {
@@ -242,13 +354,6 @@ function localDateTimeForDatabase() {
 	const now = new Date();
 	const pad = (value) => String(value).padStart(2, '0');
 	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-}
-
-function updateDailyLogCareStatus() {
-	if (!dailyLogCareStatus) return;
-	const hasTodayLog = dailyLogs.some((log) => String(log.fecha_bitacora || '').slice(0, 10) === todayIso());
-	dailyLogCareStatus.textContent = hasTodayLog ? 'Completada' : 'Pendiente';
-	dailyLogCareStatus.classList.toggle('is-complete', hasTodayLog);
 }
 
 function parseChallenges(value) {
@@ -351,14 +456,76 @@ function updateQuestPanel(challenges = []) {
 		const completed = selectedChallenges.includes(item.dataset.challenge);
 		item.classList.toggle('is-complete', completed);
 		item.setAttribute('aria-pressed', String(completed));
+		const status = item.querySelector('.quest-item-status');
+		if (status) status.textContent = completed ? 'Completado' : 'Pendiente';
 		const reward = item.querySelector('em');
 		if (reward) reward.textContent = completed ? 'Completado' : '+10 XP';
 	});
+	if (questOverallStatus) {
+		const status = completedToday === challengeIds.length ? 'Completada' : completedToday ? 'En curso' : 'Pendiente';
+		questOverallStatus.textContent = status;
+		questOverallStatus.classList.toggle('is-complete', completedToday === challengeIds.length);
+		questOverallStatus.classList.toggle('is-progress', completedToday > 0 && completedToday < challengeIds.length);
+		questOverallStatus.classList.toggle('is-pending', completedToday === 0);
+	}
 	if (questProgressFill) questProgressFill.style.width = `${completedToday / challengeIds.length * 100}%`;
 	if (questProgressLabel) questProgressLabel.textContent = `${completedToday}/6 objetivos`;
 	if (questMessage) questMessage.textContent = completedToday === challengeIds.length ? 'Misión completa. Guarda tu registro para conservar el XP.' : 'Abre una misión para registrar el hallazgo y ganar XP.';
 	const totalXp = dailyLogs.reduce((sum, log) => sum + parseChallenges(log.retos_completados).length * 10, 0);
 	if (questLevel) questLevel.textContent = `Nivel ${Math.floor(totalXp / 50) + 1} · ${totalXp} XP`;
+	updatePlantHealth(monitoringReadings.at(-1));
+}
+
+function updatePlantHealth(reading) {
+	const metrics = [
+		{ field: 'temperatura_c', valueId: 'plant-health-temperature', barId: 'plant-health-temperature-bar', suffix: ' °C', scaleMax: 50, warning: (value) => value < 15 || value > 35 },
+		{ field: 'humedad_suelo_pct', valueId: 'plant-health-soil', barId: 'plant-health-soil-bar', suffix: '%', scaleMax: 100, warning: (value) => value < 30 || value > 80 },
+		{ field: 'intensidad_luz_lux', valueId: 'plant-health-light', barId: 'plant-health-light-bar', suffix: ' lx', warning: (value) => value < 100, scale: (value) => Math.log10(Math.max(0, value) + 1) / Math.log10(10001) * 100 },
+	];
+	const warnings = [];
+	let measuredCount = 0;
+	metrics.forEach((metric) => {
+		const rawValue = reading?.[metric.field];
+		const value = rawValue === null || rawValue === undefined || rawValue === '' ? Number.NaN : Number(rawValue);
+		const valueElement = document.getElementById(metric.valueId);
+		const barElement = document.getElementById(metric.barId);
+		const metricElement = valueElement?.closest('.plant-health-metric');
+		const hasValue = Number.isFinite(value);
+		if (valueElement) valueElement.textContent = hasValue ? `${metric.field === 'temperatura_c' ? value.toFixed(1) : Math.round(value)}${metric.suffix}` : 'Sin datos';
+		if (barElement) barElement.style.width = hasValue ? `${Math.max(0, Math.min(100, metric.scale ? metric.scale(value) : value / metric.scaleMax * 100))}%` : '0%';
+		const needsAttention = hasValue && metric.warning(value);
+		metricElement?.classList.toggle('is-alert', needsAttention);
+		if (hasValue) measuredCount += 1;
+		if (needsAttention) warnings.push(metric.field === 'temperatura_c' ? 'temperatura' : metric.field === 'humedad_suelo_pct' ? 'humedad del suelo' : 'luz');
+	});
+
+	const status = document.getElementById('plant-health-status');
+	const note = document.getElementById('plant-health-note');
+	const state = !measuredCount ? 'Sin datos' : warnings.length ? 'Requiere atención' : 'En equilibrio';
+	if (status) {
+		status.textContent = state;
+		status.classList.toggle('is-unknown', !measuredCount);
+		status.classList.toggle('is-attention', warnings.length > 0);
+		status.classList.toggle('is-stable', measuredCount > 0 && !warnings.length);
+	}
+	if (note) {
+		note.textContent = !measuredCount
+			? 'Vincula un dispositivo para consultar las métricas y registra misiones para guardar el progreso.'
+			: warnings.length
+				? `Revisa ${warnings.join(', ')} con los retos de hoy y registra qué cambió en tu planta.`
+				: 'Las métricas disponibles están en rangos generales. Sigue con tus misiones para observar su evolución.';
+	}
+
+	const completedChallenges = dailyLogs.reduce((total, log) => total + new Set(parseChallenges(log.retos_completados)).size, 0);
+	const missionDays = dailyLogs.filter((log) => parseChallenges(log.retos_completados).length > 0).length;
+	const historyCount = document.getElementById('plant-history-count');
+	const historyNote = document.getElementById('plant-history-note');
+	if (historyCount) historyCount.textContent = `${completedChallenges} reto${completedChallenges === 1 ? '' : 's'} completado${completedChallenges === 1 ? '' : 's'}`;
+	if (historyNote) {
+		historyNote.textContent = completedChallenges
+			? `Llevas ${missionDays} día${missionDays === 1 ? '' : 's'} registrando misiones. Completa otro reto hoy para seguir avanzando.`
+			: 'Empieza con una misión de hoy para construir el historial de cuidado de tu planta.';
+	}
 }
 
 function renderDailyLogs() {
@@ -378,7 +545,6 @@ async function loadDailyLogs() {
 	const response = await fetch(`/api/monitoreo/bitacoras?id_proyecto=${currentProjectId}&id_usuario=${DEFAULT_USER_ID}`);
 	if (!response.ok) return;
 	dailyLogs = await response.json();
-	updateDailyLogCareStatus();
 	renderDailyLogs();
 	const todayLog = dailyLogs.find((log) => String(log.fecha_bitacora || '').slice(0, 10) === todayIso());
 	updateQuestPanel(todayLog?.retos_completados || []);
@@ -417,12 +583,12 @@ function setHardwareAvailability(isAvailable, label = 'Dispositivo pendiente') {
 	});
 	if (!currentProjectId) {
 		setStudentDataStatus('Sin datos');
-		deviceRequiredNotice.hidden = false;
+		deviceRequiredNotice.hidden = currentDashboardView !== 'student';
 		deviceStatus.textContent = 'Sin vincular';
 		projectDeviceStatus.innerHTML = '<i class="ti ti-circle-off" aria-hidden="true"></i>Sin proyecto';
 		return;
 	}
-	deviceRequiredNotice.hidden = isAvailable;
+	deviceRequiredNotice.hidden = currentDashboardView !== 'student' || isAvailable;
 	if (!isAvailable) setStudentDataStatus('Dispositivo pendiente', 'pending');
 	if (isAvailable) {
 		setStudentDataStatus('Dispositivo conectado', 'pending');
@@ -461,7 +627,7 @@ function showProjectMessage(message, isError = true) {
 
 function setEmptyProjectState() {
 	dailyLogs = [];
-	updateDailyLogCareStatus();
+	updateQuestPanel([]);
 	if (projectBannerTitle) projectBannerTitle.textContent = 'No hay proyecto activo';
 	if (projectBannerSubtitle) projectBannerSubtitle.textContent = 'Crear un proyecto para ver la información del monitoreo.';
 	if (projectSelect) projectSelect.innerHTML = '<option value="">Sin proyectos</option>';
@@ -471,6 +637,7 @@ function setEmptyProjectState() {
 	if (showProjectsButton) showProjectsButton.hidden = true;
 	setProjectNameFallback();
 	setMetricValues('Sin datos');
+	renderMonitoringDashboard([]);
 	setHardwareAvailability(false, 'Dispositivo pendiente');
 	setDeviceFormAvailability(false);
 }
@@ -497,6 +664,8 @@ async function loadTeachers() {
 function setActiveProject(projectId) {
 	currentProjectId = projectId ? Number(projectId) : null;
 	shell.dataset.projectId = currentProjectId ? String(currentProjectId) : '';
+	monitoringReadings = [];
+	renderMonitoringDashboard([]);
 	dailyLogs = [];
 	editingLogId = null;
 	selectedChallenges = [];
@@ -637,17 +806,13 @@ function renderProjectSummary(summary) {
 	if (projectBannerSubtitle) projectBannerSubtitle.textContent = `${project.planta || 'Planta'} · ${institutionName} · ${teacherName}`;
 
 	if (reading) {
-		setStudentDataStatus('Datos en vivo', 'connected');
-		document.getElementById('m-temp').textContent = formatMetricValue(reading.temperatura_c, '°');
-		document.getElementById('m-hum').textContent = formatMetricValue(reading.humedad_suelo_pct, '%');
-		document.getElementById('m-luz').textContent = formatMetricValue(reading.intensidad_luz_lux, ' lx');
-		document.getElementById('m-amb-hum').textContent = formatMetricValue(reading.humedad_ambiente_pct, '%');
-		if (humiditySlider) humiditySlider.value = Number(reading.humedad_suelo_pct || 0);
-		if (humidityValue) humidityValue.textContent = `${humiditySlider.value}%`;
+		const readingTimestamp = new Date(reading.fecha_lectura).getTime();
+		const hasRecentReading = Number.isFinite(readingTimestamp) && Date.now() - readingTimestamp <= 10 * 60 * 1000;
+		setStudentDataStatus(hasRecentReading ? 'Datos recientes' : 'Lectura atrasada', hasRecentReading ? 'connected' : 'pending');
 	} else {
 		setStudentDataStatus(project.id_dispositivo ? 'Dispositivo conectado' : 'Sin datos', project.id_dispositivo ? 'pending' : 'idle');
-		setMetricValues('Sin datos');
 	}
+	renderMonitoringDashboard(summary.lecturas || (reading ? [reading] : []));
 
 	setHardwareAvailability(Boolean(project.id_dispositivo), project.id_dispositivo ? 'Dispositivo vinculado' : 'Dispositivo pendiente');
 	setDeviceFormAvailability(Boolean(currentProjectId) && !project.id_dispositivo, project);
@@ -666,8 +831,23 @@ async function loadProjectDeviceStatus() {
 		}
 		const summary = await response.json();
 		renderProjectSummary(summary);
+		if (currentDashboardView === 'plant') await loadMonitoringHistory();
 	} catch (error) {
 		setEmptyProjectState();
+	}
+}
+
+async function loadMonitoringHistory() {
+	if (!currentProjectId) return;
+	const projectId = currentProjectId;
+	try {
+		const response = await fetch(`/api/proyectos/resumen/${projectId}/lecturas?usuario_id=${DEFAULT_USER_ID}`);
+		if (!response.ok) throw new Error('No fue posible consultar las mediciones.');
+		const readings = await response.json();
+		if (projectId !== currentProjectId) return;
+		renderMonitoringDashboard(readings);
+	} catch (error) {
+		if (!monitoringReadings.length) renderMonitoringDashboard([]);
 	}
 }
 
@@ -680,6 +860,7 @@ loadProjects();
 
 function setDashboardView(view) {
 	currentDashboardView = view;
+	if (shell) shell.dataset.dashboardView = view;
 	dashboardViews.forEach((section) => {
 		section.hidden = section.dataset.dashboardView !== view;
 	});
@@ -689,8 +870,22 @@ function setDashboardView(view) {
 	setHardwareAvailability(Boolean(currentProjectId));
 	if (view === 'student' || view === 'plant') loadProjectDeviceStatus();
 	if (view === 'records') loadDailyLogs();
+	if (view === 'missions') loadDailyLogs();
+	if (view === 'missions' && currentProjectId) loadMonitoringHistory();
 	if (view === 'photos') loadPhotoAlbum();
 }
+
+monitoringRangeButtons.forEach((button) => {
+	button.addEventListener('click', () => {
+		monitoringRangeHours = Number(button.dataset.monitorRange) || 24;
+		monitoringRangeButtons.forEach((rangeButton) => {
+			const isActive = rangeButton === button;
+			rangeButton.classList.toggle('is-active', isActive);
+			rangeButton.setAttribute('aria-pressed', String(isActive));
+		});
+		renderMonitoringDashboard();
+	});
+});
 
 navigationItems.forEach((item) => {
 	item.addEventListener('click', () => {
@@ -702,6 +897,10 @@ navigationItems.forEach((item) => {
 });
 
 setDashboardView('student');
+
+window.setInterval(() => {
+	if ((currentDashboardView === 'plant' || currentDashboardView === 'missions') && currentProjectId) loadMonitoringHistory();
+}, 300000);
 
 colorButtons.forEach((button) => {
 	button.addEventListener('click', () => {
@@ -951,8 +1150,6 @@ if (plantForm) {
 		event.preventDefault();
 		const temperature = document.getElementById('inp-temp').value;
 		formError.style.display = 'none';
-		if (temperature) document.getElementById('m-temp').textContent = `${Number.parseFloat(temperature).toFixed(1)}°`;
-		document.getElementById('m-hum').textContent = `${humiditySlider.value}%`;
 		const waterAmount = document.getElementById('water-amount').value;
 		const wateringTime = document.getElementById('watering-time').value;
 		if (activeChallenge === 'riego' && (!waterAmount || !wateringTime)) {

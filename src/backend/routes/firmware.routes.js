@@ -8,6 +8,14 @@ const router = express.Router();
 const firmwareDirectory = path.join(__dirname, '..', 'esp32-firmware');
 const firmwarePath = path.join(firmwareDirectory, 'firmware.bin');
 const manifestPath = path.join(firmwareDirectory, 'manifest.json');
+const firstInstallDirectory = path.join(firmwareDirectory, 'first-install');
+const firstInstallFiles = new Set([
+	'first-flash.bin',
+	'bootloader.bin',
+	'partitions.bin',
+	'boot_app0.bin',
+	'application.bin',
+]);
 
 function normalize(value) {
 	return typeof value === 'string' ? value.trim() : '';
@@ -73,12 +81,27 @@ router.get('/download', async (request, response) => {
 
 router.get('/download-inicial', (request, response) => {
 	try {
-		if (!readPublishedFirmware()) return response.status(404).json({ error: 'No hay firmware publicado.' });
-		return response.download(firmwarePath, 'firmware.bin');
+		const firstFlashPath = path.join(firstInstallDirectory, 'first-flash.bin');
+		if (!fs.existsSync(firstFlashPath)) return response.status(404).json({ error: 'No hay imagen de primera instalación.' });
+		return response.download(firstFlashPath, 'first-flash.bin');
 	} catch (error) {
 		console.error('Initial firmware download failed:', error.message);
 		return response.status(500).json({ error: 'No fue posible descargar el firmware inicial.' });
 	}
+});
+
+router.get('/first-install/manifest', (request, response) => {
+	const initialManifestPath = path.join(firstInstallDirectory, 'manifest.json');
+	if (!fs.existsSync(initialManifestPath)) return response.status(404).json({ error: 'No hay manifiesto de primera instalación.' });
+	return response.sendFile(initialManifestPath);
+});
+
+router.get('/first-install/files/:filename', (request, response) => {
+	const filename = normalize(request.params.filename);
+	if (!firstInstallFiles.has(filename)) return response.status(404).json({ error: 'Archivo de instalación no encontrado.' });
+	const filePath = path.join(firstInstallDirectory, filename);
+	if (!fs.existsSync(filePath)) return response.status(404).json({ error: 'Archivo de instalación no encontrado.' });
+	return response.download(filePath, filename);
 });
 
 router.get('/status', async (request, response) => {

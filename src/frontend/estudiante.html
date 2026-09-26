@@ -24,6 +24,7 @@
 				<div class="nav-section">Principal</div>
 				<button class="nav-item active" type="button" data-view="student"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Mi proyecto</button>
 				<button class="nav-item" type="button" data-view="plant"><i class="ti ti-plant" aria-hidden="true"></i>Mi planta</button>
+				<button class="nav-item" type="button" data-view="missions"><i class="ti ti-trophy" aria-hidden="true"></i>Misiones</button>
 				<button class="nav-item" type="button" data-view="experiments"><i class="ti ti-flask" aria-hidden="true"></i>Experimentos</button>
 				<div class="nav-section">Datos</div>
 				<button class="nav-item" type="button" data-view="records"><i class="ti ti-chart-line" aria-hidden="true"></i>Mis registros</button>
@@ -52,6 +53,12 @@
 
 			<div class="content">
 				<h1 class="sr-only">Dashboard de seguimiento de plantas — Rural 4.0</h1>
+				<div class="project-switcher form-row" id="project-list" hidden>
+					<label class="form-label" for="project-select">Proyecto activo</label>
+					<select id="project-select">
+						<option value="">Sin proyectos</option>
+					</select>
+				</div>
 				<section class="project-banner" data-dashboard-view="student" aria-label="Información del proyecto">
 					<div>
 						<span class="eyebrow">Proyecto activo</span>
@@ -102,12 +109,6 @@
 						<button class="secondary-btn" id="show-projects" type="button" hidden><i class="ti ti-list" aria-hidden="true"></i>Ver proyectos</button>
 						<button class="secondary-btn" id="add-project" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Agregar proyecto</button>
 					</div>
-					<div class="form-row" id="project-list" hidden>
-						<label class="form-label" for="project-select">Proyecto activo</label>
-						<select id="project-select">
-							<option value="">Sin proyectos</option>
-						</select>
-					</div>
 				</article>
 
 				<div class="device-required-notice" id="device-required-notice" data-dashboard-view="student">
@@ -116,34 +117,32 @@
 				</div>
 
 				<div class="view-heading plant-view-heading" data-dashboard-view="plant" hidden>
-					<span class="eyebrow">Cuidado diario</span><h2>Mi planta</h2><p>Consulta el estado de tu planta, registra tus bitácoras y sigue sus cuidados.</p>
+					<span class="eyebrow">Monitoreo en vivo</span><h2>Mi planta</h2>
 				</div>
 
-				<section class="metrics hardware-dependent" data-dashboard-view="plant" aria-label="Métricas actuales" hidden>
-					<article class="metric-card">
-						<div class="metric-icon metric-icon-green"><i class="ti ti-temperature" aria-hidden="true"></i></div>
-						<div class="metric-val" id="m-temp">Sin datos</div>
-						<div class="metric-label">Temperatura</div>
-						<div class="metric-trend trend-up"><i class="ti ti-trending-up" aria-hidden="true"></i>Esperando lectura</div>
-					</article>
-					<article class="metric-card">
-						<div class="metric-icon metric-icon-blue"><i class="ti ti-droplet" aria-hidden="true"></i></div>
-						<div class="metric-val" id="m-hum">Sin datos</div>
-						<div class="metric-label">Humedad del suelo</div>
-						<div class="metric-trend trend-up"><i class="ti ti-trending-up" aria-hidden="true"></i>Esperando lectura</div>
-					</article>
-					<article class="metric-card">
-						<div class="metric-icon metric-icon-yellow"><i class="ti ti-sun" aria-hidden="true"></i></div>
-						<div class="metric-val" id="m-luz">Sin datos</div>
-						<div class="metric-label">Intensidad de luz</div>
-						<div class="metric-trend trend-warn"><i class="ti ti-trending-down" aria-hidden="true"></i>Esperando lectura</div>
-					</article>
-					<article class="metric-card">
-						<div class="metric-icon metric-icon-green"><i class="ti ti-ruler-2" aria-hidden="true"></i></div>
-						<div class="metric-val" id="m-amb-hum">Sin datos</div>
-						<div class="metric-label">Humedad del ambiente</div>
-						<div class="metric-trend trend-up"><i class="ti ti-trending-up" aria-hidden="true"></i>Esperando lectura</div>
-					</article>
+				<section class="monitoring-dashboard hardware-dependent" data-dashboard-view="plant" aria-label="Panel de monitoreo de la planta" hidden>
+					<div class="monitoring-toolbar">
+						<div><span class="eyebrow">Explora tus mediciones</span><p class="monitoring-refresh-note"><i class="ti ti-refresh" aria-hidden="true"></i>El sensor guarda una lectura cada 5 minutos</p></div>
+						<div class="range-switch" role="group" aria-label="Periodo de las gráficas">
+							<button type="button" data-monitor-range="1">1 h</button>
+							<button type="button" data-monitor-range="6">6 h</button>
+							<button type="button" data-monitor-range="24" class="is-active" aria-pressed="true">24 h</button>
+							<button type="button" data-monitor-range="168">7 días</button>
+						</div>
+					</div>
+					<div class="monitor-kpis">
+						<article class="monitor-kpi temperature-kpi"><span class="monitor-kpi-icon" aria-hidden="true">🌡️</span><div><span class="monitor-kpi-label">Temperatura</span><strong id="m-temp">Sin datos</strong><small>del ambiente</small></div></article>
+						<article class="monitor-kpi soil-kpi"><span class="monitor-kpi-icon" aria-hidden="true">💧</span><div><span class="monitor-kpi-label">Agüita en la tierra</span><strong id="m-hum">Sin datos</strong><small id="soil-kpi-note">humedad del suelo</small></div></article>
+						<article class="monitor-kpi light-kpi"><span class="monitor-kpi-icon" aria-hidden="true">☀️</span><div><span class="monitor-kpi-label">Luz que recibe</span><strong id="m-luz">Sin datos</strong><small>brillo del lugar</small></div></article>
+						<article class="monitor-kpi air-kpi"><span class="monitor-kpi-icon" aria-hidden="true">🌬️</span><div><span class="monitor-kpi-label">Humedad del aire</span><strong id="m-amb-hum">Sin datos</strong><small>del ambiente</small></div></article>
+					</div>
+					<div class="monitor-chart-grid">
+						<article class="monitor-panel temperature-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon">🌡️</span><h3>¿La planta tiene calor?</h3><p>Temperatura a lo largo del tiempo</p></div><span class="chart-unit">°C</span></div><div id="temperature-chart" class="monitor-chart" role="img" aria-label="Gráfica de temperatura"></div><p id="temperature-chart-note" class="chart-kid-note">Cada punto es una medición.</p></article>
+						<article class="monitor-panel soil-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon">🌱</span><h3>¿Cómo está su tierra?</h3><p>Humedad del suelo</p></div><span class="chart-unit">%</span></div><div id="soil-chart" class="monitor-chart" role="img" aria-label="Gráfica de humedad del suelo"></div><p id="soil-chart-note" class="chart-kid-note">Un suelo húmedo ayuda a crecer.</p></article>
+						<article class="monitor-panel light-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon">🌞</span><h3>Un poquito de sol</h3><p>Luz recibida por la planta</p></div><span class="chart-unit">lux</span></div><div id="light-chart" class="monitor-chart" role="img" aria-label="Gráfica de intensidad de luz"></div><p id="light-chart-note" class="chart-kid-note">La luz cambia durante el día.</p></article>
+					</div>
+					<p id="monitor-empty-state" class="monitor-empty-state" hidden><span aria-hidden="true">🌱</span><strong>¡Pronto veremos crecer la gráfica!</strong><span>Cuando llegue la primera medición, aparecerá aquí.</span></p>
+					<p id="monitor-last-reading" class="monitor-last-reading">Esperando la primera medición</p>
 				</section>
 
 				<section class="bottom" data-dashboard-view="student">
@@ -301,19 +300,36 @@
 						</form>
 					</article>
 
-					<article class="card quest-card plant-dependent" hidden>
+				</section>
+
+				<section class="dashboard-view-panel missions-view-panel" data-dashboard-view="missions" hidden>
+					<div class="view-heading"><span class="eyebrow">Retos del proyecto</span><h2>Misiones</h2><p>Consulta el avance de los retos y completa tus objetivos de hoy.</p></div>
+					<article class="card plant-health-card">
+						<div class="plant-health-heading"><div><span class="eyebrow">Sensores e historial</span><h2 class="card-title"><i class="ti ti-heart-rate-monitor" aria-hidden="true"></i>Estado de tu planta</h2></div><strong id="plant-health-status" class="plant-health-status is-unknown" aria-live="polite">Sin datos</strong></div>
+						<p id="plant-health-note" class="plant-health-note">Registra mediciones y misiones para conocer cómo evoluciona tu planta.</p>
+						<div class="plant-health-metrics">
+							<div class="plant-health-metric"><span>Temperatura</span><div class="bar-track"><div id="plant-health-temperature-bar" class="bar-fill fill-green"></div></div><strong id="plant-health-temperature">Sin datos</strong></div>
+							<div class="plant-health-metric"><span>Humedad del suelo</span><div class="bar-track"><div id="plant-health-soil-bar" class="bar-fill fill-blue"></div></div><strong id="plant-health-soil">Sin datos</strong></div>
+							<div class="plant-health-metric"><span>Luz recibida</span><div class="bar-track"><div id="plant-health-light-bar" class="bar-fill fill-yellow"></div></div><strong id="plant-health-light">Sin datos</strong></div>
+						</div>
+						<p class="plant-health-reference">Rangos generales: 15–35 °C, humedad 30–80 % y luz mínima 100 lx. Pueden variar según el cultivo.</p>
+						<div class="mission-history-callout"><i class="ti ti-trophy" aria-hidden="true"></i><div><strong id="plant-history-count">0 retos completados</strong><p id="plant-history-note">Empieza con una misión de hoy para construir el historial de cuidado de tu planta.</p></div></div>
+					</article>
+					<article class="card quest-card">
 						<div class="quest-heading"><div><span class="eyebrow">Misión del día</span><h2 class="card-title"><i class="ti ti-trophy" aria-hidden="true"></i>Haz crecer tu planta</h2><p class="card-help">Completa objetivos, registra tus hallazgos y sube de nivel.</p></div><strong id="quest-level" class="quest-level">Nivel 1</strong></div>
 						<div class="quest-progress"><div class="quest-progress-bar"><span id="quest-progress-fill"></span></div><span id="quest-progress-label">0/6 objetivos</span></div>
+						<div class="quest-overview"><span>Estado de hoy</span><strong id="quest-overall-status" class="quest-status is-pending">Pendiente</strong></div>
 						<div id="quest-list" class="quest-list">
-							<button type="button" class="quest-item" data-challenge="color"><i class="ti ti-eye" aria-hidden="true"></i><span><strong>Observa el color</strong><small>Busca manchas o cambios en las hojas.</small></span><em>+10 XP</em></button>
-							<button type="button" class="quest-item" data-challenge="crecer"><i class="ti ti-ruler-2" aria-hidden="true"></i><span><strong>Mide el crecimiento</strong><small>Anota la altura de tu planta.</small></span><em>+10 XP</em></button>
-							<button type="button" class="quest-item" data-challenge="compost"><i class="ti ti-recycle" aria-hidden="true"></i><span><strong>Revisa el compost</strong><small>Observa humedad, olor y lombrices.</small></span><em>+10 XP</em></button>
-							<button type="button" class="quest-item" data-challenge="riego"><i class="ti ti-droplet" aria-hidden="true"></i><span><strong>Cuida el riego</strong><small>Toca la tierra y registra el cuidado.</small></span><em>+10 XP</em></button>
-							<button type="button" class="quest-item" data-challenge="plagas"><i class="ti ti-shield-check" aria-hidden="true"></i><span><strong>Detecta visitantes</strong><small>Busca bichos y agujeros bajo las hojas.</small></span><em>+10 XP</em></button>
-							<button type="button" class="quest-item" data-challenge="foto"><i class="ti ti-camera" aria-hidden="true"></i><span><strong>Captura el avance</strong><small>Toma una foto para comparar tu planta.</small></span><em>+10 XP</em></button>
+							<button type="button" class="quest-item" data-challenge="color"><i class="ti ti-eye" aria-hidden="true"></i><span><strong>Observa el color</strong><small>Busca manchas o cambios en las hojas.</small></span><span class="quest-item-meta"><small class="quest-item-status">Pendiente</small><em>+10 XP</em></span></button>
+							<button type="button" class="quest-item" data-challenge="crecer"><i class="ti ti-ruler-2" aria-hidden="true"></i><span><strong>Mide el crecimiento</strong><small>Anota la altura de tu planta.</small></span><span class="quest-item-meta"><small class="quest-item-status">Pendiente</small><em>+10 XP</em></span></button>
+							<button type="button" class="quest-item" data-challenge="compost"><i class="ti ti-recycle" aria-hidden="true"></i><span><strong>Revisa el compost</strong><small>Observa humedad, olor y lombrices.</small></span><span class="quest-item-meta"><small class="quest-item-status">Pendiente</small><em>+10 XP</em></span></button>
+							<button type="button" class="quest-item" data-challenge="riego"><i class="ti ti-droplet" aria-hidden="true"></i><span><strong>Cuida el riego</strong><small>Toca la tierra y registra el cuidado.</small></span><span class="quest-item-meta"><small class="quest-item-status">Pendiente</small><em>+10 XP</em></span></button>
+							<button type="button" class="quest-item" data-challenge="plagas"><i class="ti ti-shield-check" aria-hidden="true"></i><span><strong>Detecta visitantes</strong><small>Busca bichos y agujeros bajo las hojas.</small></span><span class="quest-item-meta"><small class="quest-item-status">Pendiente</small><em>+10 XP</em></span></button>
+							<button type="button" class="quest-item" data-challenge="foto"><i class="ti ti-camera" aria-hidden="true"></i><span><strong>Captura el avance</strong><small>Toma una foto para comparar tu planta.</small></span><span class="quest-item-meta"><small class="quest-item-status">Pendiente</small><em>+10 XP</em></span></button>
 						</div>
 						<p id="quest-message" class="quest-message">Marca tus objetivos y pulsa “Guardar registro”.</p>
 					</article>
+				</section>
 
 					<div class="quest-modal-backdrop" id="quest-modal" hidden>
 						<section class="quest-modal" role="dialog" aria-modal="true" aria-labelledby="quest-modal-title">
@@ -325,29 +341,6 @@
 							<div class="quest-modal-actions"><button class="secondary-btn" id="quest-modal-cancel" type="button">Más tarde</button><button class="save-btn" id="quest-complete" type="button"><i class="ti ti-check" aria-hidden="true"></i>Marcar como realizado</button></div>
 						</section>
 					</div>
-
-					<article class="card plant-dependent" hidden>
-						<div class="card-header">
-							<h2 class="card-title"><i class="ti ti-heart-rate-monitor" aria-hidden="true"></i>Estado de la planta</h2>
-							<span class="chip">En vivo</span>
-						</div>
-						<div class="plant-visual">
-							<div class="plant-circle"><i class="ti ti-plant-2 plant-icon" aria-hidden="true"></i></div>
-							<div class="status-badge status-saludable">Saludable</div>
-							<div class="bars">
-								<div class="bar-row"><span class="bar-name">Temperatura</span><div class="bar-track"><div class="bar-fill fill-green" style="width:0%"></div></div><span class="bar-val">Sin datos</span></div>
-								<div class="bar-row"><span class="bar-name">Humedad</span><div class="bar-track"><div class="bar-fill fill-blue" style="width:0%"></div></div><span class="bar-val">Sin datos</span></div>
-								<div class="bar-row"><span class="bar-name">Luz</span><div class="bar-track"><div class="bar-fill fill-yellow" style="width:0%"></div></div><span class="bar-val">Sin datos</span></div>
-								<div class="bar-row"><span class="bar-name">Crecimiento</span><div class="bar-track"><div class="bar-fill fill-green" style="width:0%"></div></div><span class="bar-val">Sin datos</span></div>
-							</div>
-						</div>
-					</article>
-
-					<article class="card care-card">
-						<div class="card-header"><div><span class="eyebrow">Rutina de cuidado</span><h2 class="card-title"><i class="ti ti-calendar-heart" aria-hidden="true"></i>Cuidados recomendados</h2></div><span class="chip">Esta semana</span></div>
-						<div class="care-list"><div><i class="ti ti-droplet" aria-hidden="true"></i><span>Revisa la humedad del suelo</span><strong>Hoy</strong></div><div><i class="ti ti-sun" aria-hidden="true"></i><span>Verifica la exposición a la luz</span><strong>Hoy</strong></div><div><i class="ti ti-notebook" aria-hidden="true"></i><span>Completa la bitácora diaria</span><strong id="daily-log-care-status">Pendiente</strong></div></div>
-					</article>
-				</section>
 
 				<section class="dashboard-view-panel" data-dashboard-view="experiments" hidden>
 					<div class="view-heading"><span class="eyebrow">Aprender haciendo</span><h2>Experimentos</h2><p>Registra pequeñas pruebas y compara cómo responde tu planta.</p></div><article class="card empty-view-card"><i class="ti ti-flask" aria-hidden="true"></i><h3>Aún no tienes experimentos</h3><p class="card-help">Crea una hipótesis desde tu proyecto y registra qué cambió en tu planta.</p><button class="save-btn compact-action" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Nuevo experimento</button></article>
@@ -372,17 +365,31 @@
 			<h2 id="new-device-title">Configura un ESP32 nuevo</h2>
 			<p class="modal-intro">Instala el firmware por USB antes de registrar y vincular el dispositivo al proyecto.</p>
 			<div class="modal-actions">
-				<a class="save-btn modal-primary" href="/api/firmware/download-inicial" download="firmware.bin"><i class="ti ti-download" aria-hidden="true"></i>Descargar firmware.bin</a>
+				<a class="save-btn modal-primary" href="/api/firmware/download-inicial" download="first-flash.bin"><i class="ti ti-download" aria-hidden="true"></i>Descargar imagen inicial</a>
 				<a class="secondary-btn modal-platform" href="https://espressif.github.io/esptool-js/" target="_blank" rel="noreferrer"><i class="ti ti-external-link" aria-hidden="true"></i>Abrir instalador web</a>
 			</div>
 			<ol class="setup-steps">
-				<li><strong>Conecta</strong> el ESP32 al computador con un cable USB de datos.</li>
-				<li><strong>Descarga</strong> el archivo <code>firmware.bin</code> desde este panel.</li>
-				<li><strong>Abre</strong> esptool-js, selecciona el puerto COM y el archivo descargado.</li>
-				<li><strong>Instala</strong> el firmware. Si lo solicita, mantén presionado <strong>BOOT</strong> y pulsa <strong>EN/RESET</strong>.</li>
-				<li><strong>Reinicia</strong> la placa y vuelve aquí para buscarla y vincularla.</li>
+				<li><strong>Conecta</strong> el ESP32 con un cable USB de datos y abre el instalador web en un navegador Chromium.</li>
+				<li><strong>Descarga</strong> la imagen inicial y, en esptool-js, pulsa <strong>Connect</strong> para elegir el puerto de la placa.</li>
+				<li><strong>Agrega el archivo</strong> <code>first-flash.bin</code> y cambia <strong>Flash Address</strong> a <code>0x0</code>. No dejes el valor predeterminado <code>0x1000</code>.</li>
+				<li><strong>Pulsa Program</strong> y espera a que finalice. Si no entra en modo de carga, mantén <strong>BOOT</strong>, pulsa y suelta <strong>EN/RESET</strong>, y luego suelta <strong>BOOT</strong>.</li>
+				<li><strong>Reinicia la placa:</strong> desconecta el cable USB, espera unos segundos y vuelve a conectarlo. Esto inicia el ESP32 y crea la red temporal <code>Rural40-Setup</code>.</li>
+				<li><strong>Conecta tu celular o computador</strong> a la red Wi-Fi <code>Rural40-Setup</code>. Si indica que no hay internet, elige permanecer conectado.</li>
+				<li><strong>Abre</strong> <code>http://192.168.4.1</code> y configura el nombre y la contraseña de tu Wi-Fi de <strong>2.4 GHz</strong>. La dirección del servicio queda configurada automáticamente.</li>
+				<li><strong>Guarda</strong> la configuración. Espera a que el ESP32 se conecte a internet; después vuelve aquí para registrar y vincularlo al proyecto.</li>
 			</ol>
-			<div class="modal-note"><i class="ti ti-info-circle" aria-hidden="true"></i><span>La primera instalación siempre requiere conexión USB. Las actualizaciones posteriores pueden hacerse por WiFi.</span></div>
+			<details class="setup-components">
+				<summary>Descargar los componentes por separado</summary>
+				<p>Usa esta alternativa solo si vas a agregar varios archivos en esptool-js. Escribe cada dirección indicada:</p>
+				<ul>
+					<li><a href="/api/firmware/first-install/files/bootloader.bin" download>bootloader.bin</a> <code>0x1000</code></li>
+					<li><a href="/api/firmware/first-install/files/partitions.bin" download>partitions.bin</a> <code>0x8000</code></li>
+					<li><a href="/api/firmware/first-install/files/boot_app0.bin" download>boot_app0.bin</a> <code>0xE000</code></li>
+					<li><a href="/api/firmware/first-install/files/application.bin" download>application.bin</a> <code>0x10000</code></li>
+				</ul>
+				<a class="setup-manifest-link" href="/api/firmware/first-install/manifest" target="_blank" rel="noreferrer">Ver manifiesto de primera instalación</a>
+			</details>
+			<div class="modal-note"><i class="ti ti-info-circle" aria-hidden="true"></i><span>La primera instalación se realiza por USB. Luego configura el Wi-Fi para conectar el dispositivo a internet.</span></div>
 		</section>
 	</div>
 	<script src="js/dashboard.js"></script>
