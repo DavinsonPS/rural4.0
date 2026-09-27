@@ -61,11 +61,12 @@ const char *DEFAULT_PROVISIONING_KEY = "Rural-pr0vision1ng/k3y";
 const char *DEFAULT_DEVICE_KEY = "";
 const char *READING_QUEUE = "/readings.queue";
 DHT dht(DHT_PIN, DHT11);
-RTC_DS1307 rtc;
+RTC_DS3231 rtc;
 Adafruit_NeoPixel matrix(NUM_PIXELS, MATRIX_PIN, NEO_GRB + NEO_KHZ800);
 Preferences preferences;
 String apiUrl;
 String deviceKey;
+
 bool sdReady = false;
 bool lightReady = false;
 unsigned long lastReading = 0;
@@ -372,8 +373,14 @@ void takeReading() {
   if (!isfinite(temperature)) temperature = 0.0f;
   if (!isfinite(humidity)) humidity = 0.0f;
   if (!isfinite(lightLux) || lightLux < 0.0f) lightLux = 0.0f;
-  String lightValue = String(lightLux, 1);
-  String payload = "{\"fecha_lectura\":\"" + dateTimeText(rtc.now()) + "\",\"temperatura_c\":" + String(temperature, 1) + ",\"humedad_ambiente_pct\":" + String(humidity, 1) + ",\"humedad_suelo_pct\":" + String(soil) + ",\"intensidad_luz_lux\":" + lightValue + "}";
+  StaticJsonDocument<256> reading;
+  reading["fecha_lectura"] = dateTimeText(rtc.now());
+  reading["temperatura_c"] = isfinite(temperature) ? temperature : 0.0f;
+  reading["humedad_ambiente_pct"] = isfinite(humidity) ? humidity : 0.0f;
+  reading["humedad_suelo_pct"] = isfinite((float)soil) ? soil : 0;
+  reading["intensidad_luz_lux"] = isfinite(lightLux) && lightLux >= 0.0f ? lightLux : 0.0f;
+  String payload;
+  serializeJson(reading, payload);
   int status = postReading(payload);
   if (status == 401) {
     Serial.println("API lectura: clave invalida; reprovisionando dispositivo.");
@@ -387,6 +394,12 @@ void takeReading() {
 
 void setup() {
   Serial.begin(115200);
+  unsigned long serialWaitStart = millis();
+  while (!Serial && millis() - serialWaitStart < 3000) { delay(10); }
+  delay(300);
+  Serial.println();
+  Serial.println("=== Iniciando sistema ===");
+
   pinMode(LED_PIN, OUTPUT);
   dht.begin();
   Wire.begin(21, 22);
@@ -396,7 +409,11 @@ void setup() {
   scanI2C();
   lightReady = initializeLightSensor();
   if (!lightReady) Serial.println("BH1750 no disponible: la luz se enviara en cero.");
-  if (rtcReady && !rtc.isrunning()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  if (rtcReady) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  if (rtcReady) {
+    Serial.print("Hora de arranque: ");
+    Serial.println(dateTimeText(rtc.now()));
+  }
   matrix.begin();
   matrix.setBrightness(255);
   matrix.fill(matrix.Color(255, 0, 0));
