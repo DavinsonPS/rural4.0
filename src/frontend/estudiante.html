@@ -10,6 +10,9 @@
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
 	<link rel="stylesheet" href="css/styles.css">
+	<link rel="stylesheet" href="css/cuestionarios.css">
+	<link rel="stylesheet" href="css/guardian.css">
+	<link rel="stylesheet" href="css/timelapse.css">
 </head>
 <body>
 	<main class="shell" data-project-id="">
@@ -25,6 +28,7 @@
 				<button class="nav-item active" type="button" data-view="student"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Mi proyecto</button>
 				<button class="nav-item" type="button" data-view="plant"><i class="ti ti-plant" aria-hidden="true"></i>Mi planta</button>
 				<button class="nav-item" type="button" data-view="missions"><i class="ti ti-trophy" aria-hidden="true"></i>Misiones</button>
+				<button class="nav-item" type="button" data-view="quizzes"><i class="ti ti-help-hexagon" aria-hidden="true"></i>Cuestionarios</button>
 				<button class="nav-item" type="button" data-view="experiments"><i class="ti ti-flask" aria-hidden="true"></i>Experimentos</button>
 				<div class="nav-section">Datos</div>
 				<button class="nav-item" type="button" data-view="records"><i class="ti ti-chart-line" aria-hidden="true"></i>Mis registros</button>
@@ -159,6 +163,13 @@
 						</div>
 						<form id="device-form">
 							<div class="form-row">
+								<label class="form-label" for="device-kind">Tipo de dispositivo</label>
+								<select id="device-kind">
+									<option value="sensor">ESP32 de sensores</option>
+									<option value="camara">ESP32-CAMERA</option>
+								</select>
+							</div>
+							<div class="form-row">
 								<label class="form-label" for="pending-device-select">Dispositivos provisionados</label>
 								<div class="two-fields">
 									<select id="pending-device-select">
@@ -218,10 +229,6 @@
 									</div>
 								</div>
 							</div>
-							<div class="form-row" hidden>
-								<label class="form-label" for="device-registration-key">Clave de registro</label>
-								<input type="hidden" id="device-registration-key" autocomplete="off" value="">
-							</div>
 							<div id="device-form-message" class="form-error" role="alert"></div>
 							<div class="device-actions">
 								<button class="secondary-btn" id="register-device" type="button"><i class="ti ti-scan" aria-hidden="true"></i>Reconocer ESP32</button>
@@ -236,6 +243,12 @@
 								<p><strong>Código:</strong> <span id="linked-device-code">-</span></p>
 								<p><strong>Configuración:</strong> <span id="linked-device-config">-</span></p>
 								<button class="secondary-btn" id="unlink-device" type="button"><i class="ti ti-trash" aria-hidden="true"></i>Eliminar dispositivo</button>
+							</div>
+							<div id="camera-linked-summary" class="device-summary camera-device-summary" hidden>
+								<h3>Cámara vinculada</h3>
+								<p><strong>Código:</strong> <span id="linked-camera-code">-</span></p>
+								<p><strong>Modelo:</strong> ESP32-CAMERA</p>
+								<button class="secondary-btn" id="unlink-camera" type="button"><i class="ti ti-trash" aria-hidden="true"></i>Desvincular cámara</button>
 							</div>
 					</article>
 
@@ -342,6 +355,10 @@
 						</section>
 					</div>
 
+				<section class="dashboard-view-panel" data-dashboard-view="quizzes" hidden>
+					<div class="view-heading"><span class="eyebrow">Pon a prueba lo que aprendiste</span><h2>Cuestionarios</h2><p>Responde los cuestionarios de tu docente. Verás tu puntaje al enviar y las respuestas correctas cuando cierre.</p></div>
+					<div id="student-quizzes"></div>
+				</section>
 				<section class="dashboard-view-panel" data-dashboard-view="experiments" hidden>
 					<div class="view-heading"><span class="eyebrow">Aprender haciendo</span><h2>Experimentos</h2><p>Registra pequeñas pruebas y compara cómo responde tu planta.</p></div><article class="card empty-view-card"><i class="ti ti-flask" aria-hidden="true"></i><h3>Aún no tienes experimentos</h3><p class="card-help">Crea una hipótesis desde tu proyecto y registra qué cambió en tu planta.</p><button class="save-btn compact-action" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Nuevo experimento</button></article>
 				</section>
@@ -349,7 +366,10 @@
 					<div class="view-heading"><span class="eyebrow">Datos de tu proyecto</span><h2>Mis registros</h2><p>Una bitácora por día para conservar tus observaciones y cuidados.</p></div><div id="daily-logs-list" class="daily-logs-list"><article class="card empty-view-card"><i class="ti ti-chart-line" aria-hidden="true"></i><h3>Sin registros todavía</h3><p class="card-help">Guarda tu primera bitácora desde “Mi planta”.</p></article></div>
 				</section>
 				<section class="dashboard-view-panel" data-dashboard-view="photos" hidden>
-					<div class="view-heading"><span class="eyebrow">Evolución visual</span><h2>Fotos de avance</h2><p>Tu álbum está ordenado cronológicamente para comparar el crecimiento.</p></div><div id="photo-album" class="photo-album"><article class="card empty-view-card"><i class="ti ti-camera-plus" aria-hidden="true"></i><h3>Agrega tu primera foto</h3><p class="card-help">Puedes subirla desde la bitácora diaria en “Mi planta”.</p></article></div>
+					<div class="view-heading"><span class="eyebrow">Evolución visual</span><h2>Fotos de avance</h2><p>Mira crecer tu planta con las fotos de la cámara y compara las que tomas tú.</p></div>
+					<article class="card"><h3 class="photo-section-title"><i class="ti ti-movie" aria-hidden="true"></i> Timelapse de la cámara</h3><p class="photo-section-help">La ESP32-CAMERA toma fotos automáticas de tu planta. Dale ▶ para verla crecer.</p><div id="student-timelapse"></div></article>
+					<h3 class="photo-section-title">Mis fotos</h3>
+					<div id="photo-album" class="photo-album"><article class="card empty-view-card"><i class="ti ti-camera-plus" aria-hidden="true"></i><h3>Agrega tu primera foto</h3><p class="card-help">Puedes subirla desde la bitácora diaria en “Mi planta”.</p></article></div>
 				</section>
 				<section class="dashboard-view-panel" data-dashboard-view="assistant" hidden>
 					<div class="view-heading"><span class="eyebrow">Orientación para tu proyecto</span><h2>Asistente IA</h2><p>Encuentra ideas para observar, preguntar y aprender de tu planta.</p></div><article class="card assistant-card"><div class="assistant-icon"><i class="ti ti-robot" aria-hidden="true"></i></div><h3>¿Qué quieres explorar?</h3><p class="card-help">El asistente estará disponible cuando conectemos tus observaciones con recomendaciones para tu proyecto.</p><div class="suggestion-list"><button type="button">¿Cómo sé si mi planta necesita agua?</button><button type="button">¿Qué puedo observar esta semana?</button><button type="button">¿Cómo comparo mis registros?</button></div></article>
@@ -362,36 +382,72 @@
 		<section class="setup-modal" role="dialog" aria-modal="true" aria-labelledby="new-device-title">
 			<button class="modal-close" id="close-new-device" type="button" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
 			<div class="modal-kicker"><i class="ti ti-plug-connected" aria-hidden="true"></i>Primera instalación</div>
-			<h2 id="new-device-title">Configura un ESP32 nuevo</h2>
-			<p class="modal-intro">Instala el firmware por USB antes de registrar y vincular el dispositivo al proyecto.</p>
-			<div class="modal-actions">
-				<a class="save-btn modal-primary" href="/api/firmware/download-inicial" download="first-flash.bin"><i class="ti ti-download" aria-hidden="true"></i>Descargar imagen inicial</a>
-				<a class="secondary-btn modal-platform" href="https://espressif.github.io/esptool-js/" target="_blank" rel="noreferrer"><i class="ti ti-external-link" aria-hidden="true"></i>Abrir instalador web</a>
+			<h2 id="new-device-title">Configura un dispositivo nuevo</h2>
+			<p class="modal-intro">Instala el firmware por USB antes de registrar y vincular el dispositivo al proyecto. ¿Qué vas a configurar?</p>
+			<div class="setup-kind" role="radiogroup" aria-label="Tipo de dispositivo">
+				<button type="button" class="setup-kind-option is-selected" data-setup-kind="sensor" role="radio" aria-checked="true"><i class="ti ti-cpu" aria-hidden="true"></i><strong>ESP32 de sensores</strong><span>Temperatura, humedad, suelo y luz</span></button>
+				<button type="button" class="setup-kind-option" data-setup-kind="camara" role="radio" aria-checked="false"><i class="ti ti-camera" aria-hidden="true"></i><strong>ESP32-CAMERA</strong><span>Fotos automáticas para el timelapse</span></button>
 			</div>
-			<ol class="setup-steps">
-				<li><strong>Conecta</strong> el ESP32 con un cable USB de datos y abre el instalador web en un navegador Chromium.</li>
-				<li><strong>Descarga</strong> la imagen inicial y, en esptool-js, pulsa <strong>Connect</strong> para elegir el puerto de la placa.</li>
-				<li><strong>Agrega el archivo</strong> <code>first-flash.bin</code> y cambia <strong>Flash Address</strong> a <code>0x0</code>. No dejes el valor predeterminado <code>0x1000</code>.</li>
-				<li><strong>Pulsa Program</strong> y espera a que finalice. Si no entra en modo de carga, mantén <strong>BOOT</strong>, pulsa y suelta <strong>EN/RESET</strong>, y luego suelta <strong>BOOT</strong>.</li>
-				<li><strong>Reinicia la placa:</strong> desconecta el cable USB, espera unos segundos y vuelve a conectarlo. Esto inicia el ESP32 y crea la red temporal <code>Rural40-Setup</code>.</li>
-				<li><strong>Conecta tu celular o computador</strong> a la red Wi-Fi <code>Rural40-Setup</code>. Si indica que no hay internet, elige permanecer conectado.</li>
-				<li><strong>Abre</strong> <code>http://192.168.4.1</code> y configura el nombre y la contraseña de tu Wi-Fi de <strong>2.4 GHz</strong>. La dirección del servicio queda configurada automáticamente.</li>
-				<li><strong>Guarda</strong> la configuración. Espera a que el ESP32 se conecte a internet; después vuelve aquí para registrar y vincularlo al proyecto.</li>
-			</ol>
-			<details class="setup-components">
-				<summary>Descargar los componentes por separado</summary>
-				<p>Usa esta alternativa solo si vas a agregar varios archivos en esptool-js. Escribe cada dirección indicada:</p>
-				<ul>
-					<li><a href="/api/firmware/first-install/files/bootloader.bin" download>bootloader.bin</a> <code>0x1000</code></li>
-					<li><a href="/api/firmware/first-install/files/partitions.bin" download>partitions.bin</a> <code>0x8000</code></li>
-					<li><a href="/api/firmware/first-install/files/boot_app0.bin" download>boot_app0.bin</a> <code>0xE000</code></li>
-					<li><a href="/api/firmware/first-install/files/application.bin" download>application.bin</a> <code>0x10000</code></li>
-				</ul>
-				<a class="setup-manifest-link" href="/api/firmware/first-install/manifest" target="_blank" rel="noreferrer">Ver manifiesto de primera instalación</a>
-			</details>
+
+			<div data-setup-panel="sensor">
+				<div class="modal-actions">
+					<a class="save-btn modal-primary" href="/api/firmware/download-inicial" download="first-flash.bin"><i class="ti ti-download" aria-hidden="true"></i>Descargar imagen de sensores</a>
+					<a class="secondary-btn modal-platform" href="https://espressif.github.io/esptool-js/" target="_blank" rel="noreferrer"><i class="ti ti-external-link" aria-hidden="true"></i>Abrir instalador web</a>
+				</div>
+				<ol class="setup-steps">
+					<li><strong>Conecta</strong> el ESP32 con un cable USB de datos y abre el instalador web en un navegador Chromium.</li>
+					<li><strong>Descarga</strong> la imagen inicial y, en esptool-js, pulsa <strong>Connect</strong> para elegir el puerto de la placa.</li>
+					<li><strong>Agrega el archivo</strong> <code>first-flash.bin</code> y cambia <strong>Flash Address</strong> a <code>0x0</code>. No dejes el valor predeterminado <code>0x1000</code>.</li>
+					<li><strong>Pulsa Program</strong> y espera a que finalice. Si no entra en modo de carga, mantén <strong>BOOT</strong>, pulsa y suelta <strong>EN/RESET</strong>, y luego suelta <strong>BOOT</strong>.</li>
+					<li><strong>Reinicia la placa:</strong> desconecta el cable USB, espera unos segundos y vuelve a conectarlo. Esto inicia el ESP32 y crea la red temporal <code>Rural40-Setup</code>.</li>
+					<li><strong>Conecta tu celular o computador</strong> a la red Wi-Fi <code>Rural40-Setup</code>. Si indica que no hay internet, elige permanecer conectado.</li>
+					<li><strong>Abre</strong> <code>http://192.168.4.1</code> y configura el nombre y la contraseña de tu Wi-Fi de <strong>2.4 GHz</strong>. La dirección del servicio queda configurada automáticamente.</li>
+					<li><strong>Guarda</strong> la configuración. Espera a que el ESP32 se conecte a internet; después vuelve aquí para vincularlo como <strong>ESP32 de sensores</strong>.</li>
+				</ol>
+				<details class="setup-components">
+					<summary>Descargar los componentes por separado</summary>
+					<p>Usa esta alternativa solo si vas a agregar varios archivos en esptool-js. Escribe cada dirección indicada:</p>
+					<ul>
+						<li><a href="/api/firmware/first-install/files/bootloader.bin" download>bootloader.bin</a> <code>0x1000</code></li>
+						<li><a href="/api/firmware/first-install/files/partitions.bin" download>partitions.bin</a> <code>0x8000</code></li>
+						<li><a href="/api/firmware/first-install/files/boot_app0.bin" download>boot_app0.bin</a> <code>0xE000</code></li>
+						<li><a href="/api/firmware/first-install/files/application.bin" download>application.bin</a> <code>0x10000</code></li>
+					</ul>
+					<a class="setup-manifest-link" href="/api/firmware/first-install/manifest" target="_blank" rel="noreferrer">Ver manifiesto de primera instalación</a>
+				</details>
+			</div>
+
+			<div data-setup-panel="camara" hidden>
+				<div class="modal-note setup-camera-missing" hidden><i class="ti ti-alert-triangle" aria-hidden="true"></i><span>La imagen de instalación de la cámara aún no está publicada en el servidor. Pídele a tu docente que cargue el firmware con PlatformIO (<code>firmware/esp32-camara</code>).</span></div>
+				<div class="modal-actions setup-camera-downloads">
+					<a class="save-btn modal-primary" href="/api/firmware/download-inicial?tipo=camara" download="first-flash-camara.bin"><i class="ti ti-download" aria-hidden="true"></i>Descargar imagen de la cámara</a>
+					<a class="secondary-btn modal-platform" href="https://espressif.github.io/esptool-js/" target="_blank" rel="noreferrer"><i class="ti ti-external-link" aria-hidden="true"></i>Abrir instalador web</a>
+				</div>
+				<ol class="setup-steps">
+					<li><strong>Monta</strong> la ESP32-CAM sobre el adaptador <strong>ESP32-CAM-MB</strong> (o un FTDI con IO0 a GND) y conéctalo con un cable USB de datos.</li>
+					<li><strong>En esptool-js</strong>, pulsa <strong>Connect</strong>, agrega <code>first-flash-camara.bin</code> con <strong>Flash Address</strong> <code>0x0</code> y pulsa <strong>Program</strong>. Si no entra en modo de carga, mantén <strong>IO0</strong> y pulsa <strong>RST</strong>.</li>
+					<li><strong>Reinicia la cámara:</strong> desconecta y vuelve a conectar el USB. Crea la red temporal <code>Rural40-Camera-Setup</code>.</li>
+					<li><strong>Conéctate</strong> a <code>Rural40-Camera-Setup</code>, abre <code>http://192.168.4.1</code> y configura tu Wi-Fi de <strong>2.4 GHz</strong>.</li>
+					<li><strong>Espera</strong> a que se conecte: se registra sola en el servidor.</li>
+					<li><strong>Vuelve aquí</strong>, elige <strong>ESP32-CAMERA</strong> en <em>Tipo de dispositivo</em>, pulsa <strong>Buscar</strong> y vincúlala al proyecto. Al minuto empiezan a llegar fotos al timelapse de <em>Fotos de avance</em>.</li>
+				</ol>
+				<details class="setup-components">
+					<summary>Descargar los componentes por separado</summary>
+					<p>Escribe cada dirección indicada en esptool-js:</p>
+					<ul>
+						<li><a href="/api/firmware/first-install/files/bootloader.bin?tipo=camara" download>bootloader.bin</a> <code>0x1000</code></li>
+						<li><a href="/api/firmware/first-install/files/partitions.bin?tipo=camara" download>partitions.bin</a> <code>0x8000</code></li>
+						<li><a href="/api/firmware/first-install/files/boot_app0.bin?tipo=camara" download>boot_app0.bin</a> <code>0xE000</code></li>
+						<li><a href="/api/firmware/first-install/files/application.bin?tipo=camara" download>application.bin</a> <code>0x10000</code></li>
+					</ul>
+					<a class="setup-manifest-link" href="/api/firmware/first-install/manifest?tipo=camara" target="_blank" rel="noreferrer">Ver manifiesto de primera instalación</a>
+				</details>
+			</div>
 			<div class="modal-note"><i class="ti ti-info-circle" aria-hidden="true"></i><span>La primera instalación se realiza por USB. Luego configura el Wi-Fi para conectar el dispositivo a internet.</span></div>
 		</section>
 	</div>
-	<script src="js/dashboard.js"></script>
+	<script type="module" src="js/estudiante/guardian.js"></script>
+	<script type="module" src="js/dashboard.js"></script>
+	<script type="module" src="js/estudiante/cuestionarios.js"></script>
 </body>
 </html>

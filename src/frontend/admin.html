@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rural 4.0 | Administración</title>
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+	<link rel="stylesheet" href="css/styles.css">
+	<link rel="stylesheet" href="css/docente.css">
+	<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+	<main class="shell teacher-shell admin-shell">
+		<aside class="sidebar">
+			<div class="sidebar-logo"><i class="ti ti-plant-2 logo-icon" aria-hidden="true"></i><div class="logo-title">Rural 4.0</div><div class="logo-sub">Administración</div></div>
+			<nav class="nav" aria-label="Navegación de administración">
+				<div class="nav-section">General</div>
+				<a class="nav-item" href="#resumen" data-nav="resumen"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Resumen</a>
+				<a class="nav-item" href="#usuarios" data-nav="usuarios"><i class="ti ti-users" aria-hidden="true"></i>Usuarios</a>
+				<div class="nav-section">Catálogos</div>
+				<a class="nav-item" href="#instituciones" data-nav="instituciones"><i class="ti ti-building" aria-hidden="true"></i>Instituciones</a>
+				<a class="nav-item" href="#plantas" data-nav="plantas"><i class="ti ti-plant" aria-hidden="true"></i>Plantas</a>
+				<div class="nav-section">Operación</div>
+				<a class="nav-item" href="#dispositivos" data-nav="dispositivos"><i class="ti ti-cpu" aria-hidden="true"></i>Dispositivos</a>
+				<a class="nav-item" href="#auditoria" data-nav="auditoria"><i class="ti ti-history" aria-hidden="true"></i>Auditoría</a>
+				<div class="nav-section">Acompañamiento</div>
+				<a class="nav-item" href="/docente.html"><i class="ti ti-school" aria-hidden="true"></i>Panel docente</a>
+			</nav>
+			<div class="sidebar-footer">
+				<div class="user-pill"><div class="user-avatar" id="admin-initial">A</div><div class="user-name" id="admin-full-name">Administrador</div></div>
+				<button class="logout-btn" id="logout-button" type="button"><i class="ti ti-logout" aria-hidden="true"></i><span>Cerrar sesión</span></button>
+			</div>
+		</aside>
+		<section class="main">
+			<header class="topbar">
+				<div>
+					<div class="topbar-title">Hola, <span id="admin-name">administrador</span> <span aria-hidden="true">👋</span></div>
+					<div class="topbar-sub">Gestión de usuarios, catálogos, dispositivos y auditoría.</div>
+				</div>
+				<span class="badge-live"><span class="dot"></span>Administración</span>
+			</header>
+			<div class="content">
+				<section id="admin-view" aria-live="polite"></section>
+			</div>
+		</section>
+	</main>
+	<script type="module" src="js/admin/main.js"></script>
+</body>
+</html>
