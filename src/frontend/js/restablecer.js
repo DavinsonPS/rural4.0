@@ -1,4 +1,17 @@
-const resetToken = new URLSearchParams(window.location.search).get('token');
+const resetParams = new URLSearchParams(window.location.search);
+const resetToken = resetParams.get('token');
+
+// Cuando el enlace viene de una invitación del administrador, la página da la bienvenida
+// en lugar de hablar de "restablecer".
+if (resetParams.get('invitacion') === '1') {
+	document.title = 'Rural 4.0 | Activa tu cuenta';
+	document.querySelector('.login-kicker').textContent = 'Bienvenida';
+	document.getElementById('reset-title').innerHTML = 'Activa tu<br><strong>cuenta.</strong>';
+	document.querySelector('.intro-copy p').textContent = 'Crea tu contraseña para empezar a acompañar los proyectos.';
+	document.querySelector('.login-panel-heading .eyebrow').textContent = 'Primer ingreso';
+	document.querySelector('.login-panel-heading h2').textContent = 'Crea tu contraseña';
+	document.querySelector('.login-panel-heading p').textContent = 'Usa al menos 8 caracteres. El enlace de invitación solo puede utilizarse una vez.';
+}
 const resetForm = document.getElementById('reset-form');
 const resetMessage = document.getElementById('reset-message');
 const resetSubmit = document.getElementById('reset-submit');

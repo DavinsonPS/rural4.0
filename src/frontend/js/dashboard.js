@@ -1,3 +1,9 @@
+import { api } from './lib/api.js';
+import { escapeHtml } from './lib/html.js';
+import { cachedUser, requireUser, logout } from './lib/sesion.js';
+import { renderLineChart, chartPresets } from './lib/charts.js';
+import { mountTimelapse } from './lib/timelapse.js';
+
 const navigationItems = document.querySelectorAll('.nav-item');
 const colorButtons = document.querySelectorAll('.color-btn');
 const humiditySlider = document.getElementById('sl-hum');
@@ -49,9 +55,13 @@ const deviceMessage = document.getElementById('device-form-message');
 const deviceLinkCode = document.getElementById('device-link-code');
 const deviceApiKey = document.getElementById('device-api-key');
 const deviceLinkedSummary = document.getElementById('device-linked-summary');
+const cameraLinkedSummary = document.getElementById('camera-linked-summary');
 const linkedDeviceCode = document.getElementById('linked-device-code');
 const linkedDeviceConfig = document.getElementById('linked-device-config');
 const unlinkDeviceButton = document.getElementById('unlink-device');
+const linkedCameraCode = document.getElementById('linked-camera-code');
+const unlinkCameraButton = document.getElementById('unlink-camera');
+const deviceKindSelect = document.getElementById('device-kind');
 const newDeviceButton = document.getElementById('new-device-button');
 const newDeviceModal = document.getElementById('new-device-modal');
 const closeNewDeviceButton = document.getElementById('close-new-device');
@@ -69,11 +79,10 @@ const monitoringRangeButtons = document.querySelectorAll('[data-monitor-range]')
 const monitoringEmptyState = document.getElementById('monitor-empty-state');
 const monitoringLastReading = document.getElementById('monitor-last-reading');
 const userNameElement = document.querySelector('.user-name');
-const registrationKeyInput = document.getElementById('device-registration-key');
 const logoutButton = document.getElementById('logout-button');
-const storedUser = JSON.parse(localStorage.getItem('rural40_user') || 'null');
-const DEFAULT_USER_ID = Number(storedUser?.id) || 0;
+let storedUser = cachedUser();
 let recognizedDevice = null;
+let currentProjectFinalized = false;
 let currentProjectId = shell?.dataset.projectId ? Number(shell.dataset.projectId) : null;
 let projectRecords = [];
 let editingProjectId = null;
@@ -96,38 +105,23 @@ const challengeDetails = {
 	foto: { title: 'Captura el avance', label: 'Foto', instruction: 'Toma una foto de tu planta para comparar cómo crece con el tiempo.', action: 'foto', fields: ['photo', 'observation'] },
 };
 
-	logoutButton?.addEventListener('click', async () => {
-	await fetch('/api/auth/logout', { method: 'POST' });
-	localStorage.removeItem('rural40_user');
-	window.location.replace('/');
-});
+logoutButton?.addEventListener('click', logout);
 
-if (!DEFAULT_USER_ID) {
-	window.location.replace('/');
+// Eventos para otros módulos de la página (por ejemplo Guardián, la mascota).
+function emit(name, detail = null) {
+	document.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
-if (storedUser && userNameElement) {
-	userNameElement.textContent = `${storedUser.nombres} ${storedUser.apellidos}`.trim();
-}
-
-if (storedUser && topbarTitle) {
-	topbarTitle.innerHTML = `Hola, ${storedUser.nombres} <span aria-hidden="true">👋</span>`;
-}
-
-async function loadRegistrationKey() {
-	if (!registrationKeyInput) return;
-	try {
-		const response = await fetch('/api/config');
-		if (!response.ok) throw new Error('No se pudo cargar la clave de registro.');
-		const config = await response.json();
-		registrationKeyInput.value = config.registrationKey || '';
-		if (!registrationKeyInput.value) {
-			showDeviceMessage('No se encontró la clave de registro configurada en el servidor.', true);
-		}
-	} catch (error) {
-		showDeviceMessage(error.message, true);
+function greetUser() {
+	if (storedUser && userNameElement) {
+		userNameElement.textContent = `${storedUser.nombres} ${storedUser.apellidos}`.trim();
+	}
+	if (storedUser && topbarTitle) {
+		topbarTitle.innerHTML = `Hola, ${escapeHtml(storedUser.nombres)} <span aria-hidden="true">👋</span>`;
 	}
 }
+
+greetUser();
 
 function setProjectFormVisible(isVisible) {
 	if (projectForm) projectForm.hidden = !isVisible;
@@ -163,8 +157,12 @@ function renderProjectListModal() {
 	if (!projectsModal) return;
 	const list = projectsModal.querySelector('.projects-modal-list');
 	list.innerHTML = projectRecords.map((project) => {
-		const linked = Boolean(project.id_dispositivo);
-		return `<article class="project-row"><div><strong>${project.nombre}</strong><span>${project.planta || 'Planta'} · ${project.docente_nombres || ''} ${project.docente_apellidos || ''}</span>${linked ? '<em>Dispositivo vinculado</em>' : ''}</div><div class="project-row-actions"><button class="project-edit-btn" type="button" data-project-action="edit" data-project-id="${project.id}" ${linked ? 'disabled title="No se puede editar con dispositivo vinculado"' : ''}><i class="ti ti-pencil" aria-hidden="true"></i>Editar</button><button class="project-delete-btn" type="button" data-project-action="delete" data-project-id="${project.id}" ${linked ? 'disabled title="No se puede eliminar con dispositivo vinculado"' : ''}><i class="ti ti-trash" aria-hidden="true"></i>Eliminar</button></div></article>`;
+		const sensorLinked = Boolean(project.id_dispositivo);
+		const cameraLinked = Boolean(project.id_dispositivo_camara);
+		const linked = sensorLinked || cameraLinked;
+		const linkedLabels = [sensorLinked && 'ESP32 sensores', cameraLinked && 'ESP32-CAMERA'].filter(Boolean).join(' · ');
+		const finalizedLabel = project.fecha_fin ? ' · Finalizado' : '';
+		return `<article class="project-row"><div><strong>${escapeHtml(project.nombre)}</strong><span>${escapeHtml(project.planta || 'Planta')} · ${escapeHtml(project.docente_nombres || '')} ${escapeHtml(project.docente_apellidos || '')}${finalizedLabel}</span>${linked ? `<em>${linkedLabels}</em>` : ''}</div><div class="project-row-actions"><button class="project-edit-btn" type="button" data-project-action="edit" data-project-id="${project.id}" ${linked ? 'disabled title="No se puede editar con dispositivos vinculados"' : ''}><i class="ti ti-pencil" aria-hidden="true"></i>Editar</button><button class="project-delete-btn" type="button" data-project-action="delete" data-project-id="${project.id}" ${linked ? 'disabled title="No se puede eliminar con dispositivos vinculados"' : ''}><i class="ti ti-trash" aria-hidden="true"></i>Eliminar</button></div></article>`;
 	}).join('') || '<p class="projects-empty">No tienes proyectos activos.</p>';
 }
 
@@ -197,9 +195,12 @@ function setupProjectModals() {
 			return;
 		}
 		if (button.dataset.projectAction === 'delete' && window.confirm(`¿Eliminar el proyecto "${project.nombre}"?`)) {
-			const response = await fetch(`/api/proyectos/${project.id}?usuario_id=${DEFAULT_USER_ID}`, { method: 'DELETE' });
-			const result = await response.json();
-			if (!response.ok) { window.alert(result.error || 'No fue posible eliminar el proyecto.'); return; }
+			try {
+				await api(`/api/proyectos/${project.id}`, { method: 'DELETE' });
+			} catch (error) {
+				window.alert(error.message || 'No fue posible eliminar el proyecto.');
+				return;
+			}
 			projectsModal.hidden = true;
 			currentProjectId = null;
 			await loadProjects();
@@ -214,7 +215,7 @@ function setProjectListVisible(isVisible) {
 function setProjectNameFallback() {
 	if (userNameElement && !storedUser) userNameElement.textContent = 'Usuario';
 	if (topbarTitle) {
-		topbarTitle.innerHTML = storedUser ? `Hola, ${storedUser.nombres} <span aria-hidden="true">👋</span>` : 'Hola, selecciona un proyecto 👋';
+		topbarTitle.innerHTML = storedUser ? `Hola, ${escapeHtml(storedUser.nombres)} <span aria-hidden="true">👋</span>` : 'Hola, selecciona un proyecto 👋';
 	}
 	if (topbarSub) {
 		topbarSub.textContent = 'Aún no hay un proyecto activo para este usuario.';
@@ -239,71 +240,14 @@ function getVisibleMonitoringReadings() {
 	});
 }
 
-function renderMonitoringChart(containerId, readings, field, settings) {
-	const container = document.getElementById(containerId);
-	if (!container) return;
-	const series = readings
-		.map((reading) => ({
-			time: new Date(reading.fecha_lectura).getTime(),
-			value: reading[field] === null || reading[field] === undefined || reading[field] === ''
-				? Number.NaN
-				: Number(reading[field]),
-		}))
-		.filter((point) => Number.isFinite(point.time) && Number.isFinite(point.value));
-
-	if (!series.length) {
-		container.innerHTML = '<p class="chart-no-data">Aún no hay mediciones en este periodo.</p>';
-		return;
-	}
-
-	const width = 720;
-	const height = 230;
-	const left = 54;
-	const right = 14;
-	const top = 14;
-	const bottom = 34;
-	const plotWidth = width - left - right;
-	const plotHeight = height - top - bottom;
-	const firstReadingTime = series[0].time;
-	const lastReadingTime = series.at(-1).time;
-	const readingSpan = lastReadingTime - firstReadingTime;
-	const minimumSpan = 5 * 60 * 1000;
-	const chartStartTime = readingSpan < minimumSpan
-		? firstReadingTime - (minimumSpan - readingSpan) / 2
-		: firstReadingTime;
-	const chartEndTime = readingSpan < minimumSpan
-		? lastReadingTime + (minimumSpan - readingSpan) / 2
-		: lastReadingTime;
-	const chartSpan = chartEndTime - chartStartTime;
-	let minValue = settings.min;
-	let maxValue = settings.max;
-	if (settings.dynamic) {
-		maxValue = Math.max(settings.min + settings.step, Math.ceil(Math.max(...series.map((point) => point.value)) / settings.step) * settings.step);
-	}
-	const x = (time) => left + ((time - chartStartTime) / chartSpan) * plotWidth;
-	const y = (value) => top + ((maxValue - value) / (maxValue - minValue)) * plotHeight;
-	const linePath = series.map((point, index) => `${index ? 'L' : 'M'} ${x(point.time).toFixed(1)} ${y(point.value).toFixed(1)}`).join(' ');
-	const areaPath = `${linePath} L ${x(series.at(-1).time).toFixed(1)} ${(top + plotHeight).toFixed(1)} L ${x(series[0].time).toFixed(1)} ${(top + plotHeight).toFixed(1)} Z`;
-	const gridLines = Array.from({ length: 5 }, (_, index) => {
-		const value = maxValue - ((maxValue - minValue) / 4) * index;
-		const yPosition = top + (plotHeight / 4) * index;
-		return `<g><line x1="${left}" y1="${yPosition}" x2="${width - right}" y2="${yPosition}" class="chart-grid-line"/><text x="${left - 10}" y="${yPosition + 4}" class="chart-axis-label" text-anchor="end">${settings.format(value)}</text></g>`;
-	}).join('');
-	const timeLabels = Array.from({ length: 5 }, (_, index) => {
-		const timestamp = chartStartTime + (chartSpan / 4) * index;
-		const date = new Date(timestamp);
-		const label = monitoringRangeHours > 24
-			? date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
-			: date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-		return `<text x="${left + (plotWidth / 4) * index}" y="${height - 8}" class="chart-axis-label" text-anchor="middle">${label}</text>`;
-	}).join('');
-	const lastPoint = series.at(-1);
-	container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="presentation" aria-hidden="true"><defs><linearGradient id="${containerId}-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="${settings.color}" stop-opacity=".24"/><stop offset="100%" stop-color="${settings.color}" stop-opacity=".02"/></linearGradient></defs>${gridLines}<path d="${areaPath}" fill="url(#${containerId}-fill)"/><path d="${linePath}" fill="none" stroke="${settings.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${series.length === 1 ? `<circle cx="${x(lastPoint.time)}" cy="${y(lastPoint.value)}" r="6" fill="${settings.color}"/>` : `<circle cx="${x(lastPoint.time)}" cy="${y(lastPoint.value)}" r="5" fill="white" stroke="${settings.color}" stroke-width="3"/>`}${timeLabels}</svg>`;
+function renderMonitoringChart(containerId, readings, field) {
+	renderLineChart(document.getElementById(containerId), readings, field, { ...chartPresets[field], rangeHours: monitoringRangeHours });
 }
 
 function renderMonitoringDashboard(readings = monitoringReadings) {
 	monitoringReadings = Array.isArray(readings) ? readings : [];
 	const latest = monitoringReadings.at(-1);
+	if (latest) emit('rural40:lectura', latest);
 	if (latest) {
 		document.getElementById('m-temp').textContent = formatMetricValue(latest.temperatura_c, ' °C');
 		document.getElementById('m-hum').textContent = formatMetricValue(latest.humedad_suelo_pct, '%');
@@ -330,9 +274,9 @@ function renderMonitoringDashboard(readings = monitoringReadings) {
 		monitoringLastReading.textContent = `${countLabel} · ${latestLabel}`;
 	}
 	if (monitoringEmptyState) monitoringEmptyState.hidden = hasVisibleData;
-	renderMonitoringChart('temperature-chart', visibleReadings, 'temperatura_c', { min: 0, max: 50, step: 10, color: '#e27644', format: (value) => `${Math.round(value)}°` });
-	renderMonitoringChart('soil-chart', visibleReadings, 'humedad_suelo_pct', { min: 0, max: 100, step: 20, color: '#219a86', format: (value) => `${Math.round(value)}%` });
-	renderMonitoringChart('light-chart', visibleReadings, 'intensidad_luz_lux', { min: 0, max: 100, step: 100, dynamic: true, color: '#d39a18', format: (value) => `${Math.round(value)}` });
+	renderMonitoringChart('temperature-chart', visibleReadings, 'temperatura_c');
+	renderMonitoringChart('soil-chart', visibleReadings, 'humedad_suelo_pct');
+	renderMonitoringChart('light-chart', visibleReadings, 'intensidad_luz_lux');
 	updatePlantHealth(latest);
 }
 
@@ -432,7 +376,7 @@ function openQuestModal(challenge) {
 	if (!detail || !questModal) return;
 	activeChallenge = challenge;
 	const currentLog = dailyLogs.find((log) => String(log.fecha_bitacora || '').slice(0, 10) === (dailyLogDate.value || todayIso()));
-	const readOnly = selectedChallenges.includes(challenge);
+	const readOnly = currentProjectFinalized || selectedChallenges.includes(challenge);
 	questModalTitle.textContent = detail.title;
 	questModalInstruction.textContent = detail.instruction;
 	questScene.dataset.action = detail.action;
@@ -536,31 +480,55 @@ function renderDailyLogs() {
 	}
 	dailyLogsList.innerHTML = dailyLogs.map((log) => {
 		const completedChallenges = parseChallenges(log.retos_completados);
-		return `<article class="card daily-log-card"><div class="daily-log-header"><div><span class="eyebrow">${log.fecha_bitacora}</span><h3>${standardizeObservationText(log) || 'Bitácora diaria'}</h3></div><div class="daily-log-actions"><span class="log-xp"><i class="ti ti-trophy" aria-hidden="true"></i>${completedChallenges.length * 10} XP</span><button type="button" data-log-action="edit" data-log-id="${log.id}"><i class="ti ti-pencil" aria-hidden="true"></i>Editar</button><button type="button" data-log-action="delete" data-log-id="${log.id}"><i class="ti ti-trash" aria-hidden="true"></i>Eliminar</button></div></div><div class="daily-log-values"><span><i class="ti ti-target" aria-hidden="true"></i>${completedChallenges.length}/6 objetivos</span><span><i class="ti ti-temperature" aria-hidden="true"></i>${log.temperatura_ambiente_c ?? 'Sin dato'} °C</span><span><i class="ti ti-droplet" aria-hidden="true"></i>${log.humedad_suelo_pct ?? 'Sin dato'}%</span><span><i class="ti ti-droplet-filled" aria-hidden="true"></i>${log.agua_aplicada_ml ?? 'Sin dato'} ml</span><span><i class="ti ti-clock" aria-hidden="true"></i>${log.hora_riego || 'Sin hora'}</span></div></article>`;
+		const actions = currentProjectFinalized ? '' : `<button type="button" data-log-action="edit" data-log-id="${Number(log.id)}"><i class="ti ti-pencil" aria-hidden="true"></i>Editar</button><button type="button" data-log-action="delete" data-log-id="${Number(log.id)}"><i class="ti ti-trash" aria-hidden="true"></i>Eliminar</button>`;
+		return `<article class="card daily-log-card"><div class="daily-log-header"><div><span class="eyebrow">${escapeHtml(String(log.fecha_bitacora || '').slice(0, 10))}</span><h3>${escapeHtml(standardizeObservationText(log) || 'Bitácora diaria')}</h3></div><div class="daily-log-actions"><span class="log-xp"><i class="ti ti-trophy" aria-hidden="true"></i>${completedChallenges.length * 10} XP</span>${actions}</div></div><div class="daily-log-values"><span><i class="ti ti-target" aria-hidden="true"></i>${completedChallenges.length}/6 objetivos</span><span><i class="ti ti-temperature" aria-hidden="true"></i>${escapeHtml(log.temperatura_ambiente_c ?? 'Sin dato')} °C</span><span><i class="ti ti-droplet" aria-hidden="true"></i>${escapeHtml(log.humedad_suelo_pct ?? 'Sin dato')}%</span><span><i class="ti ti-droplet-filled" aria-hidden="true"></i>${escapeHtml(log.agua_aplicada_ml ?? 'Sin dato')} ml</span><span><i class="ti ti-clock" aria-hidden="true"></i>${escapeHtml(log.hora_riego || 'Sin hora')}</span></div></article>`;
 	}).join('');
 }
 
 async function loadDailyLogs() {
 	if (!currentProjectId || !dailyLogsList) return;
-	const response = await fetch(`/api/monitoreo/bitacoras?id_proyecto=${currentProjectId}&id_usuario=${DEFAULT_USER_ID}`);
-	if (!response.ok) return;
-	dailyLogs = await response.json();
+	try {
+		dailyLogs = await api(`/api/monitoreo/bitacoras?id_proyecto=${currentProjectId}`);
+	} catch {
+		return;
+	}
 	renderDailyLogs();
+	emit('rural40:bitacoras', dailyLogs);
 	const todayLog = dailyLogs.find((log) => String(log.fecha_bitacora || '').slice(0, 10) === todayIso());
 	updateQuestPanel(todayLog?.retos_completados || []);
 }
 
+let timelapsePlayer = null;
+let timelapseProjectId = null;
+
+// El timelapse solo se arma cuando se abre "Fotos de avance" (evita descargar fotos de más).
+function loadTimelapse() {
+	const container = document.getElementById('student-timelapse');
+	if (!container || !currentProjectId || currentDashboardView !== 'photos') return;
+	if (timelapseProjectId === currentProjectId && timelapsePlayer) {
+		timelapsePlayer.reload();
+		return;
+	}
+	timelapsePlayer?.stop();
+	timelapseProjectId = currentProjectId;
+	timelapsePlayer = mountTimelapse(container, { projectId: currentProjectId });
+}
+
 async function loadPhotoAlbum() {
 	if (!currentProjectId || !photoAlbum) return;
-	const response = await fetch(`/api/monitoreo/fotografias?id_proyecto=${currentProjectId}&id_usuario=${DEFAULT_USER_ID}`);
-	if (!response.ok) return;
-	const photos = await response.json();
+	loadTimelapse();
+	let photos;
+	try {
+		photos = await api(`/api/monitoreo/fotografias?id_proyecto=${currentProjectId}&origen=estudiante`);
+	} catch {
+		return;
+	}
 	if (!photos.length) {
 		photoAlbum.innerHTML = '<article class="card empty-view-card"><i class="ti ti-camera-plus" aria-hidden="true"></i><h3>Agrega tu primera foto</h3><p class="card-help">Puedes subirla desde la bitácora diaria en “Mi planta”.</p></article>';
 		return;
 	}
-	const grouped = photos.reduce((groups, photo) => { const day = photo.fecha_fotografia.slice(0, 10); (groups[day] ||= []).push(photo); return groups; }, {});
-	photoAlbum.innerHTML = Object.entries(grouped).map(([day, items]) => `<section class="photo-day"><div class="photo-day-heading"><span class="eyebrow">${day}</span><strong>${items.length} foto${items.length === 1 ? '' : 's'}</strong></div><div class="photo-grid">${items.map((photo) => `<figure><img src="${photo.url}" alt="Registro fotográfico del ${day}" loading="lazy"><figcaption>${new Date(photo.fecha_fotografia).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</figcaption></figure>`).join('')}</div></section>`).join('');
+	const grouped = photos.reduce((groups, photo) => { const day = String(photo.fecha_fotografia).slice(0, 10); (groups[day] ||= []).push(photo); return groups; }, {});
+	photoAlbum.innerHTML = Object.entries(grouped).map(([day, items]) => `<section class="photo-day"><div class="photo-day-heading"><span class="eyebrow">${escapeHtml(day)}</span><strong>${items.length} foto${items.length === 1 ? '' : 's'}</strong></div><div class="photo-grid">${items.map((photo) => `<figure><img src="${escapeHtml(photo.url)}" alt="Registro fotográfico del ${escapeHtml(day)}" loading="lazy"><figcaption>${new Date(photo.fecha_fotografia).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</figcaption></figure>`).join('')}</div></section>`).join('');
 }
 
 function formatMetricValue(value, suffix = '') {
@@ -602,20 +570,33 @@ function setHardwareAvailability(isAvailable, label = 'Dispositivo pendiente') {
 
 function setDeviceFormAvailability(isAvailable, project = null) {
 	if (!deviceForm) return;
-	const isLinked = Boolean(project && project.id_dispositivo);
-	deviceForm.hidden = isLinked || !isAvailable;
+	const sensorLinked = Boolean(project?.id_dispositivo);
+	const cameraLinked = Boolean(project?.id_dispositivo_camara);
+	const hasProject = Boolean(currentProjectId && isAvailable);
+	deviceForm.hidden = !hasProject || (sensorLinked && cameraLinked);
 	if (deviceLinkedSummary) {
-		deviceLinkedSummary.hidden = !isLinked;
-		if (isLinked && project) {
+		deviceLinkedSummary.hidden = !sensorLinked;
+		if (sensorLinked && project) {
 			if (linkedDeviceCode) linkedDeviceCode.textContent = project.codigo_interno || 'Sin código';
 			if (linkedDeviceConfig) {
 				linkedDeviceConfig.textContent = `Luz: ${project.configuracion_led || 'no definida'} · Color: ${project.color_led || 'rojo'} · Tierra: ${project.tipo_tierra || 'Sin definir'}`;
 			}
 		}
 	}
-	if (!isAvailable && deviceMessage) {
+	if (cameraLinkedSummary) {
+		cameraLinkedSummary.hidden = !cameraLinked;
+		if (cameraLinked && linkedCameraCode) linkedCameraCode.textContent = project.dispositivo_camara?.codigo_interno || 'Sin código';
+	}
+	if (!hasProject && deviceMessage) {
 		deviceMessage.textContent = 'Selecciona un proyecto activo para registrar y vincular un dispositivo.';
 		deviceMessage.style.display = 'block';
+	}
+	if (deviceKindSelect) {
+		[...deviceKindSelect.options].forEach((option) => {
+			option.disabled = option.value === 'sensor' ? sensorLinked : cameraLinked;
+		});
+		if (deviceKindSelect.selectedOptions[0]?.disabled) deviceKindSelect.value = sensorLinked ? 'camara' : 'sensor';
+		deviceKindSelect.dispatchEvent(new Event('change'));
 	}
 }
 
@@ -645,17 +626,14 @@ function setEmptyProjectState() {
 async function loadTeachers() {
 	if (!projectTeacherInput) return;
 	try {
-		const response = await fetch('/api/proyectos/docentes');
-		if (!response.ok) throw new Error('No se pudieron cargar los docentes.');
-		const teachers = await response.json();
+		const teachers = await api('/api/proyectos/docentes');
 		if (!Array.isArray(teachers) || !teachers.length) {
 			projectTeacherInput.innerHTML = '<option value="">No hay docentes disponibles</option>';
 			return;
 		}
 		projectTeacherInput.innerHTML = teachers
-			.map((teacher) => `<option value="${teacher.id}">${teacher.nombres} ${teacher.apellidos}</option>`)
+			.map((teacher) => `<option value="${Number(teacher.id)}">${escapeHtml(teacher.nombres)} ${escapeHtml(teacher.apellidos)}</option>`)
 			.join('');
-		projectTeacherInput.insertAdjacentHTML('afterend', '');
 	} catch (error) {
 		projectTeacherInput.innerHTML = '<option value="">No hay docentes disponibles</option>';
 	}
@@ -682,15 +660,13 @@ function setActiveProject(projectId) {
 async function loadPlantCatalog() {
 	if (!projectPlantInput) return;
 	try {
-		const response = await fetch('/api/proyectos/plantas');
-		if (!response.ok) throw new Error('No se pudieron cargar las plantas.');
-		const plants = await response.json();
+		const plants = await api('/api/proyectos/plantas');
 		if (!Array.isArray(plants) || !plants.length) {
 			projectPlantInput.innerHTML = '<option value="">Sin plantas disponibles</option>';
 			return;
 		}
 		projectPlantInput.innerHTML = plants
-			.map((plant) => `<option value="${plant.id}">${plant.nombre_comun}</option>`)
+			.map((plant) => `<option value="${Number(plant.id)}">${escapeHtml(plant.nombre_comun)}</option>`)
 			.join('');
 	} catch (error) {
 		projectPlantInput.innerHTML = '<option value="">Sin plantas disponibles</option>';
@@ -701,17 +677,14 @@ async function loadProjects() {
 	if (!projectSelect) return;
 	projectSelect.innerHTML = '<option value="">Cargando...</option>';
 	try {
-		const response = await fetch(`/api/proyectos?usuario_id=${DEFAULT_USER_ID}`);
-		if (!response.ok) {
-			throw new Error('No fue posible consultar los proyectos del usuario.');
-		}
-		const projects = await response.json();
+		const projects = await api('/api/proyectos');
 		projectRecords = Array.isArray(projects) ? projects : [];
 		if (!projects.length) {
+			emit('rural40:sin-proyecto');
 			setEmptyProjectState();
 			return;
 		}
-		projectSelect.innerHTML = projects.map((project) => `<option value="${project.id}">${project.nombre}</option>`).join('');
+		projectSelect.innerHTML = projects.map((project) => `<option value="${Number(project.id)}">${escapeHtml(project.nombre)}${project.fecha_fin ? ' (finalizado)' : ''}</option>`).join('');
 		setProjectFormVisible(false);
 		setProjectListVisible(true);
 		if (showProjectsButton) showProjectsButton.hidden = false;
@@ -726,7 +699,6 @@ async function loadProjects() {
 async function createProject(event) {
 	event.preventDefault();
 	const payload = {
-		id_usuario: DEFAULT_USER_ID,
 		id_docente: Number(projectTeacherInput.value),
 		id_planta: Number(projectPlantInput.value),
 		nombre: projectNameInput.value.trim(),
@@ -740,13 +712,10 @@ async function createProject(event) {
 	}
 
 	try {
-		const response = await fetch(editingProjectId ? `/api/proyectos/${editingProjectId}` : '/api/proyectos', {
+		const result = await api(editingProjectId ? `/api/proyectos/${editingProjectId}` : '/api/proyectos', {
 			method: editingProjectId ? 'PUT' : 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(payload),
+			body: payload,
 		});
-		const result = await response.json();
-		if (!response.ok) throw new Error(result.error || 'No fue posible crear el proyecto.');
 		projectNameInput.value = '';
 		projectDescriptionInput.value = '';
 		showProjectMessage(editingProjectId ? 'Proyecto actualizado correctamente.' : `Proyecto creado correctamente: ${result.nombre}`, false);
@@ -791,6 +760,7 @@ function renderProjectSummary(summary) {
 		setEmptyProjectState();
 		return;
 	}
+	emit('rural40:proyecto', summary);
 
 	const project = summary.project;
 	const reading = summary.ultima_lectura || null;
@@ -814,8 +784,18 @@ function renderProjectSummary(summary) {
 	}
 	renderMonitoringDashboard(summary.lecturas || (reading ? [reading] : []));
 
+	currentProjectFinalized = Boolean(project.fecha_fin);
 	setHardwareAvailability(Boolean(project.id_dispositivo), project.id_dispositivo ? 'Dispositivo vinculado' : 'Dispositivo pendiente');
-	setDeviceFormAvailability(Boolean(currentProjectId) && !project.id_dispositivo, project);
+	setDeviceFormAvailability(Boolean(currentProjectId) && !currentProjectFinalized, project);
+	if (deviceStatus) {
+		const linkedKinds = [project.id_dispositivo && 'Sensores', project.id_dispositivo_camara && 'Cámara'].filter(Boolean);
+		deviceStatus.textContent = linkedKinds.length ? linkedKinds.join(' + ') : 'Sin vincular';
+	}
+	if (currentProjectFinalized && projectDeviceStatus) {
+		projectDeviceStatus.innerHTML = '<i class="ti ti-lock" aria-hidden="true"></i>Proyecto finalizado por tu docente';
+	}
+	[unlinkDeviceButton, unlinkCameraButton].forEach((button) => { if (button) button.hidden = currentProjectFinalized; });
+	renderDailyLogs();
 }
 
 async function loadProjectDeviceStatus() {
@@ -825,11 +805,7 @@ async function loadProjectDeviceStatus() {
 	}
 
 	try {
-		const response = await fetch(`/api/proyectos/resumen/${currentProjectId}`);
-		if (!response.ok) {
-			throw new Error('No se pudo consultar el resumen del proyecto.');
-		}
-		const summary = await response.json();
+		const summary = await api(`/api/proyectos/resumen/${currentProjectId}`);
 		renderProjectSummary(summary);
 		if (currentDashboardView === 'plant') await loadMonitoringHistory();
 	} catch (error) {
@@ -841,9 +817,7 @@ async function loadMonitoringHistory() {
 	if (!currentProjectId) return;
 	const projectId = currentProjectId;
 	try {
-		const response = await fetch(`/api/proyectos/resumen/${projectId}/lecturas?usuario_id=${DEFAULT_USER_ID}`);
-		if (!response.ok) throw new Error('No fue posible consultar las mediciones.');
-		const readings = await response.json();
+		const readings = await api(`/api/proyectos/resumen/${projectId}/lecturas`);
 		if (projectId !== currentProjectId) return;
 		renderMonitoringDashboard(readings);
 	} catch (error) {
@@ -853,13 +827,21 @@ async function loadMonitoringHistory() {
 
 setupProjectModals();
 setEmptyProjectState();
-loadRegistrationKey();
-loadPlantCatalog();
-loadTeachers();
-loadProjects();
+
+// La sesión se confirma con el servidor antes de cargar datos; si no es un estudiante,
+// requireUser redirige a la página que le corresponde.
+requireUser(['ESTUDIANTE']).then((user) => {
+	storedUser = user;
+	emit('rural40:usuario', user);
+	greetUser();
+	loadPlantCatalog();
+	loadTeachers();
+	loadProjects();
+}).catch(() => {});
 
 function setDashboardView(view) {
 	currentDashboardView = view;
+	if (view !== 'photos') timelapsePlayer?.stop();
 	if (shell) shell.dataset.dashboardView = view;
 	dashboardViews.forEach((section) => {
 		section.hidden = section.dataset.dashboardView !== view;
@@ -925,6 +907,43 @@ function setNewDeviceModalVisible(isVisible) {
 	if (isVisible) closeNewDeviceButton?.focus();
 }
 
+// "Dispositivo nuevo": el estudiante elige si configura el ESP32 de sensores o la cámara, y se
+// muestran la imagen y los pasos de ese dispositivo. Elegirlo deja listo el tipo en el formulario
+// de vinculación.
+let cameraImageChecked = false;
+
+async function checkCameraImage() {
+	if (cameraImageChecked) return;
+	cameraImageChecked = true;
+	let available = false;
+	try {
+		available = (await fetch('/api/firmware/first-install/manifest?tipo=camara', { method: 'GET' })).ok;
+	} catch { available = false; }
+	newDeviceModal.querySelector('.setup-camera-missing').hidden = available;
+	newDeviceModal.querySelector('.setup-camera-downloads').hidden = !available;
+	newDeviceModal.querySelector('[data-setup-panel="camara"] .setup-components').hidden = !available;
+}
+
+function selectSetupKind(kind) {
+	newDeviceModal.querySelectorAll('[data-setup-kind]').forEach((option) => {
+		const selected = option.dataset.setupKind === kind;
+		option.classList.toggle('is-selected', selected);
+		option.setAttribute('aria-checked', String(selected));
+	});
+	newDeviceModal.querySelectorAll('[data-setup-panel]').forEach((panel) => { panel.hidden = panel.dataset.setupPanel !== kind; });
+	if (kind === 'camara') checkCameraImage();
+	const option = deviceKindSelect?.querySelector(`option[value="${kind}"]`);
+	if (deviceKindSelect && option && !option.disabled) {
+		deviceKindSelect.value = kind;
+		deviceKindSelect.dispatchEvent(new Event('change'));
+	}
+}
+
+newDeviceModal?.querySelector('.setup-kind')?.addEventListener('click', (event) => {
+	const option = event.target.closest('[data-setup-kind]');
+	if (option) selectSetupKind(option.dataset.setupKind);
+});
+
 if (newDeviceButton) newDeviceButton.addEventListener('click', () => setNewDeviceModalVisible(true));
 if (closeNewDeviceButton) closeNewDeviceButton.addEventListener('click', () => setNewDeviceModalVisible(false));
 if (newDeviceModal) {
@@ -943,19 +962,16 @@ function showDeviceMessage(message, isError = true) {
 }
 
 async function loadPendingDevices() {
-	const registrationKey = document.getElementById('device-registration-key')?.value.trim();
-	if (!registrationKey || !pendingDeviceSelect) {
-		showDeviceMessage('Escribe la clave de registro para buscar dispositivos provisionados.');
-		return;
-	}
+	if (!pendingDeviceSelect) return;
 	try {
-		const response = await fetch('/api/dispositivos/pendientes', { headers: { 'X-Registration-Key': registrationKey } });
-		const devices = await response.json();
-		if (!response.ok) throw new Error(devices.error || 'No fue posible consultar los dispositivos.');
+		// Solo se listan los del tipo elegido: al vincular una cámara no aparecen sensores y viceversa.
+		const kind = deviceKindSelect?.value || 'sensor';
+		const isCameraModel = (device) => String(device.modelo || '').toUpperCase() === 'ESP32-CAMERA';
+		const devices = (await api('/api/dispositivos/pendientes')).filter((device) => (kind === 'camara') === isCameraModel(device));
 		pendingDeviceSelect.innerHTML = devices.length
-			? '<option value="">Selecciona un dispositivo</option>' + devices.map((device) => `<option value="${device.id}" data-code="${device.codigo_interno}" data-mac="${device.mac_address || ''}" data-serial="${device.serial || ''}" data-link="${device.codigo_vinculacion || ''}">${device.codigo_interno} · ${device.mac_address || device.serial || 'sin identificador'}</option>`).join('')
-			: '<option value="">No hay dispositivos pendientes</option>';
-		showDeviceMessage(`${devices.length} dispositivo(s) pendiente(s) encontrado(s).`, false);
+			? '<option value="">Selecciona un dispositivo</option>' + devices.map((device) => `<option value="${Number(device.id)}" data-code="${escapeHtml(device.codigo_interno)}" data-mac="${escapeHtml(device.mac_address || '')}" data-serial="${escapeHtml(device.serial || '')}" data-link="${escapeHtml(device.codigo_vinculacion || '')}" data-model="${escapeHtml(device.modelo || '')}">${escapeHtml(device.codigo_interno)} · ${escapeHtml(device.modelo || 'ESP32')} · ${escapeHtml(device.mac_address || device.serial || 'sin identificador')}</option>`).join('')
+			: `<option value="">No hay ${kind === 'camara' ? 'cámaras' : 'ESP32 de sensores'} pendientes</option>`;
+		showDeviceMessage(`${devices.length} ${kind === 'camara' ? 'cámara(s)' : 'ESP32 de sensores'} pendiente(s) encontrado(s).`, false);
 	} catch (error) {
 		showDeviceMessage(error.message);
 	}
@@ -969,6 +985,8 @@ if (pendingDeviceSelect) {
 		document.getElementById('device-code').value = option.dataset.code;
 		document.getElementById('device-mac').value = option.dataset.mac;
 		document.getElementById('device-serial').value = option.dataset.serial;
+		if (deviceKindSelect) deviceKindSelect.value = option.dataset.model?.toUpperCase() === 'ESP32-CAMERA' ? 'camara' : 'sensor';
+		deviceKindSelect?.dispatchEvent(new Event('change'));
 		recognizedDevice = { codigo_vinculacion: option.dataset.link };
 		linkDeviceButton.disabled = !recognizedDevice.codigo_vinculacion;
 		showDeviceMessage('Dispositivo seleccionado. Puedes vincularlo al proyecto.', false);
@@ -995,31 +1013,23 @@ function resetDailyLogForm() {
 
 if (registerDeviceButton) {
 	registerDeviceButton.addEventListener('click', async () => {
-		const registrationKey = document.getElementById('device-registration-key').value;
+		const deviceType = deviceKindSelect?.value || 'sensor';
 		const payload = {
 			codigo_interno: document.getElementById('device-code').value,
 			mac_address: document.getElementById('device-mac').value,
 			serial: document.getElementById('device-serial').value,
+			modelo: deviceType === 'camara' ? 'ESP32-CAMERA' : 'ESP32-SENSOR',
 		};
 
-		if (!payload.codigo_interno || (!payload.mac_address && !payload.serial) || !registrationKey) {
-			showDeviceMessage('Completa el código interno, la MAC o serial y la clave de registro.');
+		if (!payload.codigo_interno || (!payload.mac_address && !payload.serial)) {
+			showDeviceMessage('Completa el código interno y la MAC o el serial.');
 			return;
 		}
 
 		registerDeviceButton.disabled = true;
 		showDeviceMessage('Reconociendo dispositivo...', false);
 		try {
-			const response = await fetch('/api/dispositivos/registrar', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-Registration-Key': registrationKey,
-				},
-				body: JSON.stringify(payload),
-			});
-			const result = await response.json();
-			if (!response.ok) throw new Error(result.error || 'No fue posible reconocer el ESP32.');
+			const result = await api('/api/dispositivos/registrar', { method: 'POST', body: payload });
 
 			recognizedDevice = result;
 			linkDeviceButton.disabled = false;
@@ -1029,7 +1039,7 @@ if (registerDeviceButton) {
 			deviceLinkCode.textContent = `Código de vinculación: ${result.codigo_vinculacion}`;
 			deviceApiKey.hidden = false;
 			deviceApiKey.textContent = `API key para el ESP32: ${result.api_key}`;
-			showDeviceMessage('ESP32 reconocido. Ahora puedes vincularlo al proyecto.', false);
+			showDeviceMessage(`${payload.modelo} reconocido. Ahora puedes vincularlo al proyecto.`, false);
 		} catch (error) {
 			showDeviceMessage(error.message);
 		} finally {
@@ -1052,30 +1062,25 @@ if (deviceForm) {
 		}
 
 		try {
-			const response = await fetch(`/api/dispositivos/proyectos/${currentProjectId}/vincular`, {
+			const deviceType = deviceKindSelect?.value || 'sensor';
+			await api(`/api/dispositivos/proyectos/${currentProjectId}/vincular`, {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-Registration-Key': document.getElementById('device-registration-key').value,
-				},
-				body: JSON.stringify({
+				body: {
 					codigo_interno: document.getElementById('device-code').value,
 					codigo_vinculacion: recognizedDevice.codigo_vinculacion,
+					tipo_dispositivo: deviceType,
 					configuracion_led: ledLight.value,
 					color_led: ledColor.value,
 					brillo_led: { suave: 64, media: 128, intensa: 192, maxima: 255 }[ledLight.value],
 					tipo_tierra: soilType.value,
-				}),
+				},
 			});
-			const result = await response.json();
-			if (!response.ok) throw new Error(result.error || 'No fue posible vincular el dispositivo.');
 
-			deviceStatus.textContent = 'Vinculado';
-			setHardwareAvailability(true);
-			deviceForm.hidden = true;
+			deviceStatus.textContent = deviceType === 'camara' ? 'Sensores + Cámara' : 'Sensores vinculados';
+			if (deviceType === 'sensor') setHardwareAvailability(true);
 			deviceLinkCode.hidden = true;
 			linkDeviceButton.disabled = true;
-			showDeviceMessage('Dispositivo y configuración guardados correctamente.', false);
+			showDeviceMessage(deviceType === 'camara' ? 'ESP32-CAMERA vinculada al proyecto.' : 'ESP32 de sensores vinculado al proyecto.', false);
 			await loadProjects();
 		} catch (error) {
 			showDeviceMessage(error.message);
@@ -1087,14 +1092,7 @@ if (unlinkDeviceButton) {
 	unlinkDeviceButton.addEventListener('click', async () => {
 		if (!currentProjectId) return;
 		try {
-			const response = await fetch(`/api/dispositivos/proyectos/${currentProjectId}`, {
-				method: 'DELETE',
-				headers: {
-					'X-Registration-Key': document.getElementById('device-registration-key').value,
-				},
-			});
-			const result = await response.json();
-			if (!response.ok) throw new Error(result.error || 'No fue posible eliminar la vinculación.');
+			await api(`/api/dispositivos/proyectos/${currentProjectId}`, { method: 'DELETE' });
 			showDeviceMessage('Dispositivo desvinculado correctamente.', false);
 			recognizedDevice = null;
 			await loadProjects();
@@ -1103,6 +1101,28 @@ if (unlinkDeviceButton) {
 		}
 	});
 }
+
+if (unlinkCameraButton) {
+	unlinkCameraButton.addEventListener('click', async () => {
+		if (!currentProjectId) return;
+		try {
+			await api(`/api/dispositivos/proyectos/${currentProjectId}?tipo_dispositivo=camara`, { method: 'DELETE' });
+			recognizedDevice = null;
+			showDeviceMessage('ESP32-CAMERA desvinculada del proyecto.', false);
+			await loadProjects();
+		} catch (error) {
+			showDeviceMessage(error.message);
+		}
+	});
+}
+
+deviceKindSelect?.addEventListener('change', () => {
+	const isCamera = deviceKindSelect.value === 'camara';
+	const configurationFields = document.querySelector('.device-config-fields');
+	if (configurationFields) configurationFields.hidden = isCamera;
+	const deviceCodeInput = document.getElementById('device-code');
+	if (deviceCodeInput) deviceCodeInput.placeholder = isCamera ? 'Ej: CAM-0042' : 'Ej: RURAL-0042';
+});
 
 if (plantForm) {
 	if (dailyLogDate) dailyLogDate.value = todayIso();
@@ -1126,9 +1146,12 @@ if (plantForm) {
 		if (!log) return;
 		if (button.dataset.logAction === 'delete') {
 			if (!window.confirm(`¿Eliminar la bitácora del ${log.fecha_bitacora}?`)) return;
-			const response = await fetch(`/api/monitoreo/bitacoras/${log.id}?id_proyecto=${currentProjectId}&id_usuario=${DEFAULT_USER_ID}`, { method: 'DELETE' });
-			if (response.ok) { await loadDailyLogs(); return; }
-			window.alert('No fue posible eliminar la bitácora.');
+			try {
+				await api(`/api/monitoreo/bitacoras/${log.id}`, { method: 'DELETE' });
+				await loadDailyLogs();
+			} catch (error) {
+				window.alert(error.message || 'No fue posible eliminar la bitácora.');
+			}
 			return;
 		}
 		editingLogId = log.id;
@@ -1167,6 +1190,11 @@ if (plantForm) {
 			formError.style.display = 'block';
 			return;
 		}
+		if (currentProjectFinalized) {
+			formError.textContent = 'El proyecto está finalizado. Solo puedes consultar sus registros.';
+			formError.style.display = 'block';
+			return;
+		}
 		const hasPhoto = Boolean(dailyPhoto?.files?.[0]);
 		const payloadDate = dailyLogDate.value || todayIso();
 		const currentLog = dailyLogs.find((log) => String(log.fecha_bitacora || '').slice(0, 10) === payloadDate);
@@ -1184,7 +1212,6 @@ if (plantForm) {
 		try {
 			const payload = {
 				id_proyecto: currentProjectId,
-				id_usuario: DEFAULT_USER_ID,
 				fecha_bitacora: payloadDate,
 				temperatura_ambiente_c: temperature ? Number(temperature) : currentLog?.temperatura_ambiente_c ?? null,
 				agua_aplicada_ml: activeChallenge === 'riego' ? Number(waterAmount) : currentLog?.agua_aplicada_ml ?? null,
@@ -1194,27 +1221,27 @@ if (plantForm) {
 				observacion: observations.join(' - '),
 				retos_completados: completedChallenges,
 			};
-			const response = await fetch(logId ? `/api/monitoreo/bitacoras/${logId}` : '/api/monitoreo/bitacoras', {
+			await api(logId ? `/api/monitoreo/bitacoras/${logId}` : '/api/monitoreo/bitacoras', {
 				method: logId ? 'PUT' : 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(payload),
+				body: payload,
 			});
-			const result = await response.json();
-			if (!response.ok) throw new Error(result.error || 'No fue posible guardar la bitácora.');
 			let photoWarning = '';
 			if (hasPhoto) {
 				const photoData = new FormData();
-				photoData.append('foto', dailyPhoto.files[0]);
 				photoData.append('id_proyecto', currentProjectId);
-				photoData.append('id_usuario', DEFAULT_USER_ID);
 				photoData.append('fecha_bitacora', payload.fecha_bitacora);
 				photoData.append('fecha_fotografia', localDateTimeForDatabase());
-				const photoResponse = await fetch('/api/monitoreo/fotografias', { method: 'POST', body: photoData });
-				if (!photoResponse.ok) photoWarning = ' La bitácora se guardó, pero no fue posible guardar la foto.';
+				photoData.append('foto', dailyPhoto.files[0]);
+				try {
+					await api('/api/monitoreo/fotografias', { method: 'POST', form: photoData });
+				} catch {
+					photoWarning = ' La bitácora se guardó, pero no fue posible guardar la foto.';
+				}
 			}
 			resetDailyLogForm();
 			await loadDailyLogs();
 			await loadPhotoAlbum();
+			emit('rural40:registro-guardado', { conFoto: hasPhoto && !photoWarning });
 			formError.textContent = `${hasPhoto ? 'Bitácora y foto' : 'Bitácora'} guardadas correctamente.${photoWarning}`;
 		} catch (error) {
 			formError.textContent = error.message;

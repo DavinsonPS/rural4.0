@@ -1,0 +1,37 @@
+# Entorno local que replica el de Plesk: MariaDB 11.4 con el volcado de producción
+# y las migraciones aplicadas en orden. Solo para pruebas en tu equipo; no se despliega.
+#
+# Primera vez / reiniciar desde cero:
+#   docker compose -f local/docker-compose.yml down -v
+#   docker compose -f local/docker-compose.yml up -d
+#
+# El volcado se toma de RURAL_DUMP (por defecto ../rural40_db.sql). Si lo moviste fuera
+# del proyecto, antes de "up" ejecuta en PowerShell:  $env:RURAL_DUMP = 'C:\ruta\rural40_db.sql'
+services:
+  db:
+    image: mariadb:11.4
+    container_name: rural40-db-local
+    environment:
+      MARIADB_ROOT_PASSWORD: root-local
+      MARIADB_DATABASE: rural40_db
+      MARIADB_USER: rural40_local
+      MARIADB_PASSWORD: rural40_local
+      TZ: America/Bogota
+    command: ["--default-time-zone=-05:00"]
+    ports:
+      - "3307:3306"
+    volumes:
+      - ${RURAL_DUMP:-../rural40_db.sql}:/docker-entrypoint-initdb.d/00_volcado.sql:ro
+      - ../src/backend/migraciones/001_base.sql:/docker-entrypoint-initdb.d/01_base.sql:ro
+      - ../src/backend/migraciones/002_auditoria.sql:/docker-entrypoint-initdb.d/02_auditoria.sql:ro
+      - ../src/backend/migraciones/003_cuestionarios.sql:/docker-entrypoint-initdb.d/03_cuestionarios.sql:ro
+      - ./90_claves_locales.sql:/docker-entrypoint-initdb.d/90_claves_locales.sql:ro
+      - rural40-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  rural40-db-data:

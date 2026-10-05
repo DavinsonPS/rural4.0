@@ -1,2 +1,32 @@
+# Entorno de ejecución (Plesk) y datos de producción
+.env
+.env.local
 src/backend/.env
+src/backend/.env.local
+node_modules/
 src/backend/node_modules/
+uploads/
+tmp/
+*.log
+
+# Archivos del entorno de Plesk (viven solo en el servidor)
+.plesk.startup.cjs
+.node-version
+
+# Volcados de base de datos con datos personales.
+# Solo se versionan el esquema base (db/), las migraciones y el entorno local de pruebas.
+*.sql
+!db/*.sql
+!src/backend/migraciones/*.sql
+!local/*.sql
+
+# Paquetes de despliegue generados
+despliegue/
+
+# Imagen de instalación de la cámara: se genera con firmware/esp32-camara/publicar-imagen.ps1
+# (local o producción) y se sube a mano a Plesk. No se versiona porque lleva dentro la URL
+# y la clave de aprovisionamiento con que se compiló.
+src/backend/esp32-firmware/camara/first-install/
+
+# Configuración local del editor/asistente
+.claude/

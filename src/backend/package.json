@@ -6,7 +6,11 @@
 	"main": "server.js",
 	"scripts": {
 		"start": "node server.js",
-		"firmware:manifest": "node scripts/update-firmware-manifest.js"
+		"dev": "node --env-file=.env.local server.js",
+		"test": "node --test \"tests/*.test.js\"",
+		"firmware:manifest": "node scripts/update-firmware-manifest.js",
+		"docente:crear": "node scripts/crear-docente.js",
+		"usuario:crear": "node scripts/crear-docente.js"
 	},
 	"dependencies": {
 		"bcryptjs": "^3.0.3",

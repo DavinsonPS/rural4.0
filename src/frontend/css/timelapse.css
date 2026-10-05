@@ -1,0 +1,27 @@
+/* Timelapse de la ESP32-CAMERA (estudiante y docente). */
+
+.timelapse { display: grid; gap: 10px; }
+.timelapse-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.timelapse-count { color: var(--text-muted); font-size: 11px; }
+.timelapse-stage { position: relative; display: grid; place-items: center; overflow: hidden; aspect-ratio: 4 / 3; max-height: 520px; border: 1px solid var(--border); border-radius: 12px; background: #1c2618; }
+.timelapse-image { width: 100%; height: 100%; object-fit: contain; }
+.timelapse-empty { display: grid; justify-items: center; gap: 8px; max-width: 360px; padding: 1.5rem; color: #cfd8c8; font-size: 13px; line-height: 1.5; text-align: center; }
+.timelapse-empty i { font-size: 32px; color: #97c459; }
+.timelapse-date { position: absolute; left: 12px; top: 12px; padding: 4px 10px; border-radius: 20px; background: rgb(23 52 4 / 78%); color: #eaf3de; font-size: 12px; font-weight: 600; text-transform: capitalize; }
+.timelapse-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.timelapse-play.save-btn { width: 42px; height: 42px; padding: 0; border-radius: 50%; font-size: 18px; flex-shrink: 0; }
+.timelapse-slider { flex: 1; min-width: 160px; accent-color: #3b6d11; }
+.timelapse-speed select { padding: 7px 9px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1); color: var(--text-primary); font: inherit; font-size: 12px; }
+.timelapse-hide.secondary-btn { margin-bottom: 0; }
+.photo-section-title { margin: .5rem 0 .25rem; color: var(--text-primary); font-size: 15px; font-weight: 600; }
+.photo-section-help { margin-bottom: .75rem; color: var(--text-secondary); font-size: 12px; }
+
+/* Selector de dispositivo en "Dispositivo nuevo" (estudiante.html) */
+.setup-kind { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1rem 0; }
+.setup-kind-option { display: grid; justify-items: start; gap: 3px; padding: 12px 14px; border: 2px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--text-primary); cursor: pointer; font: inherit; text-align: left; }
+.setup-kind-option i { color: #639922; font-size: 22px; }
+.setup-kind-option strong { font-size: 14px; }
+.setup-kind-option span { color: var(--text-secondary); font-size: 11px; }
+.setup-kind-option:hover { border-color: var(--border-stronger); }
+.setup-kind-option.is-selected { border-color: #3b6d11; background: #eef6e6; }
+@media (max-width: 480px) { .setup-kind { grid-template-columns: 1fr; } }

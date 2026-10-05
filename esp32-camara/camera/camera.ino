@@ -1,3 +1,6 @@
+// OBSOLETO: este sketch fue reemplazado por firmware/esp32-camara (PlatformIO, versión 1.0.x).
+// Se conserva solo como referencia histórica. No lo uses para instalar cámaras nuevas.
+// Ver esp32-camara/OBSOLETO.md.
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>

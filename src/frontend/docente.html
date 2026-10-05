@@ -4,29 +4,151 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Rural 4.0 | Vista docente</title>
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
 	<link rel="stylesheet" href="css/styles.css">
+	<link rel="stylesheet" href="css/docente.css">
+	<link rel="stylesheet" href="css/cuestionarios.css">
+	<link rel="stylesheet" href="css/timelapse.css">
 </head>
 <body>
 	<main class="shell teacher-shell">
 		<aside class="sidebar">
 			<div class="sidebar-logo"><i class="ti ti-plant-2 logo-icon" aria-hidden="true"></i><div class="logo-title">Rural 4.0</div><div class="logo-sub">Ciencia en el campo</div></div>
-			<nav class="nav" aria-label="Navegación principal"><div class="nav-section">Docencia</div><a class="nav-item active" href="#resumen"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Resumen</a><a class="nav-item" href="#estudiantes"><i class="ti ti-users" aria-hidden="true"></i>Estudiantes</a><a class="nav-item" href="#proyectos"><i class="ti ti-plant-2" aria-hidden="true"></i>Proyectos</a></nav>
-			<div class="sidebar-footer"><button class="logout-btn" id="logout-button" type="button"><i class="ti ti-logout" aria-hidden="true"></i><span>Cerrar sesión</span></button></div>
+			<nav class="nav" aria-label="Navegación principal">
+				<div class="nav-section">Docencia</div>
+				<a class="nav-item active" href="#panel" data-nav="panel"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Seguimiento</a>
+				<a class="nav-item" href="#cuestionarios" data-nav="cuestionarios"><i class="ti ti-help-hexagon" aria-hidden="true"></i>Cuestionarios</a>
+				<a class="nav-item" href="/api/docente/exportar.csv" download><i class="ti ti-file-spreadsheet" aria-hidden="true"></i>Exportar CSV</a>
+				<a class="nav-item" href="/admin.html" id="admin-link" hidden><i class="ti ti-shield-lock" aria-hidden="true"></i>Administración</a>
+			</nav>
+			<div class="sidebar-footer">
+				<div class="user-pill"><div class="user-avatar" id="teacher-initial">D</div><div class="user-name" id="teacher-full-name">Docente</div></div>
+				<button class="logout-btn" id="logout-button" type="button"><i class="ti ti-logout" aria-hidden="true"></i><span>Cerrar sesión</span></button>
+			</div>
 		</aside>
 		<section class="main">
-			<header class="topbar"><div><div class="topbar-title">Hola, <span id="teacher-name">docente</span> <span aria-hidden="true">👋</span></div><div class="topbar-sub">Aquí tienes el seguimiento de tus proyectos.</div></div><span class="badge-live"><span class="dot"></span>Panel docente</span></header>
+			<header class="topbar">
+				<div>
+					<div class="topbar-title">Hola, <span id="teacher-name">docente</span> <span aria-hidden="true">👋</span></div>
+					<div class="topbar-sub" id="teacher-institution">Seguimiento de los proyectos de tus estudiantes.</div>
+				</div>
+				<span class="badge-live"><span class="dot"></span>Panel docente</span>
+			</header>
+
 			<div class="content">
-				<section class="project-banner teacher-banner" id="resumen"><div><span class="eyebrow">Acompañamiento en campo</span><h1>Seguimiento de estudiantes</h1><p>Consulta el avance de los proyectos vinculados a tu institución.</p></div><i class="ti ti-chart-dots-3" aria-hidden="true"></i></section>
-			<section class="teacher-stats" aria-label="Resumen de seguimiento"><article class="teacher-stat"><i class="ti ti-users" aria-hidden="true"></i><strong>3</strong><span>Estudiantes activos</span></article><article class="teacher-stat"><i class="ti ti-plant-2" aria-hidden="true"></i><strong>3</strong><span>Proyectos en curso</span></article><article class="teacher-stat"><i class="ti ti-activity" aria-hidden="true"></i><strong>86%</strong><span>Registros al día</span></article></section>
-				<section class="teacher-panel" id="estudiantes"><div class="card-header"><div><span class="eyebrow">Actividad reciente</span><h2 class="section-title">Proyectos de estudiantes</h2></div><span class="chip">Actualizado hoy</span></div><div class="student-table-wrap"><table class="student-table"><thead><tr><th>Estudiante</th><th>Proyecto</th><th>Último registro</th><th>Estado</th></tr></thead><tbody><tr><td>María Ruiz</td><td>Planta de fríjol</td><td>Hoy · 150 ml</td><td><span class="table-status healthy">Al día</span></td></tr><tr><td>Juan Pérez</td><td>Huerta de lechuga</td><td>Ayer · 200 ml</td><td><span class="table-status warning">Pendiente</span></td></tr><tr><td>Laura Gómez</td><td>Semillero de tomate</td><td>Hoy · 100 ml</td><td><span class="table-status healthy">Al día</span></td></tr></tbody></table></div></section>
-				<section class="card teacher-tip" id="proyectos"><i class="ti ti-bulb" aria-hidden="true"></i><div><h2 class="card-title">Una mirada constante hace crecer el proyecto</h2><p class="card-help">Revisa los registros pendientes y acompaña a tus estudiantes con observaciones oportunas.</p></div></section>
+				<!-- Vista: panel de seguimiento -->
+				<section id="view-panel" aria-labelledby="panel-title">
+					<section class="project-banner teacher-banner">
+						<div><span class="eyebrow">Acompañamiento en campo</span><h1 id="panel-title">¿A quién atiendo hoy?</h1><p>El semáforo ordena los proyectos según lo que necesita atención primero.</p></div>
+						<i class="ti ti-chart-dots-3" aria-hidden="true"></i>
+					</section>
+
+					<section class="teacher-stats teacher-stats-wide" aria-label="Indicadores del seguimiento" id="teacher-stats">
+						<article class="teacher-stat"><i class="ti ti-users" aria-hidden="true"></i><strong id="stat-students">–</strong><span>Estudiantes activos</span></article>
+						<article class="teacher-stat"><i class="ti ti-plant-2" aria-hidden="true"></i><strong id="stat-projects">–</strong><span>Proyectos en curso</span></article>
+						<article class="teacher-stat"><i class="ti ti-notebook" aria-hidden="true"></i><strong id="stat-logs">–</strong><span>Bitácoras al día (7 días)</span></article>
+						<article class="teacher-stat"><i class="ti ti-wifi" aria-hidden="true"></i><strong id="stat-devices">–</strong><span>Sensores en línea</span></article>
+						<article class="teacher-stat teacher-stat-alert"><i class="ti ti-alert-triangle" aria-hidden="true"></i><strong id="stat-alerts">–</strong><span>Para atender hoy</span></article>
+					</section>
+
+					<section class="teacher-panel">
+						<div class="card-header teacher-toolbar">
+							<div><span class="eyebrow">Semáforo</span><h2 class="section-title">Proyectos de tus estudiantes</h2></div>
+							<div class="toolbar-controls">
+								<div class="range-switch" role="group" aria-label="Filtrar por semáforo" id="level-filter">
+									<button type="button" data-level="" class="is-active" aria-pressed="true">Todos</button>
+									<button type="button" data-level="rojo" aria-pressed="false">Rojo</button>
+									<button type="button" data-level="naranja" aria-pressed="false">Naranja</button>
+									<button type="button" data-level="amarillo" aria-pressed="false">Amarillo</button>
+									<button type="button" data-level="verde" aria-pressed="false">Verde</button>
+								</div>
+								<div class="form-row inline-field"><label class="sr-only" for="status-filter">Estado</label><select id="status-filter"><option value="activos">En curso</option><option value="finalizados">Finalizados</option><option value="todos">Todos</option></select></div>
+								<div class="form-row inline-field"><label class="sr-only" for="student-search">Buscar estudiante o proyecto</label><input type="text" id="student-search" placeholder="Buscar estudiante o proyecto"></div>
+							</div>
+						</div>
+						<div class="student-table-wrap">
+							<table class="student-table teacher-table">
+								<thead><tr><th>Estudiante</th><th>Proyecto</th><th>Semáforo</th><th>Última bitácora</th><th>Dispositivos</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+								<tbody id="projects-body"><tr><td colspan="6" class="table-empty">Cargando proyectos…</td></tr></tbody>
+							</table>
+						</div>
+					</section>
+				</section>
+
+				<!-- Vista: ficha de un proyecto -->
+				<section id="view-project" hidden aria-live="polite">
+					<a class="secondary-btn back-link" href="#panel"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver al seguimiento</a>
+					<section class="project-banner" id="project-header"></section>
+					<div id="project-alerts" class="project-alerts"></div>
+
+					<div class="teacher-detail-grid">
+						<article class="card" id="project-management">
+							<div class="card-header"><h2 class="card-title"><i class="ti ti-settings" aria-hidden="true"></i>Gestión del proyecto</h2></div>
+							<div class="management-actions" id="management-actions"></div>
+							<p class="card-help" id="management-message" role="status"></p>
+						</article>
+						<article class="card" id="project-devices">
+							<div class="card-header"><h2 class="card-title"><i class="ti ti-device-sd-card" aria-hidden="true"></i>Dispositivos</h2></div>
+							<div id="devices-body"></div>
+						</article>
+					</div>
+
+					<article class="card teacher-card-block">
+						<div class="card-header teacher-toolbar">
+							<h2 class="card-title"><i class="ti ti-chart-line" aria-hidden="true"></i>Sensores y cuidados</h2>
+							<div class="range-switch" role="group" aria-label="Periodo de las gráficas" id="chart-range">
+								<button type="button" data-hours="24" class="is-active" aria-pressed="true">24 h</button>
+								<button type="button" data-hours="168" aria-pressed="false">7 días</button>
+							</div>
+						</div>
+						<p class="card-help">Las líneas punteadas marcan los días con bitácora: compara lo que hizo el estudiante con lo que midió el sensor.</p>
+						<div class="teacher-charts">
+							<div><h3 class="chart-title">Temperatura (°C)</h3><div class="monitor-chart teacher-chart" id="teacher-chart-temp"></div></div>
+							<div><h3 class="chart-title">Humedad del suelo (%)</h3><div class="monitor-chart teacher-chart" id="teacher-chart-soil"></div></div>
+							<div><h3 class="chart-title">Luz (lx)</h3><div class="monitor-chart teacher-chart" id="teacher-chart-light"></div></div>
+						</div>
+					</article>
+
+					<article class="card teacher-card-block">
+						<div class="card-header"><h2 class="card-title"><i class="ti ti-help-hexagon" aria-hidden="true"></i>Cuestionarios del estudiante</h2></div>
+						<div id="project-quizzes"></div>
+					</article>
+
+					<article class="card teacher-card-block">
+						<div class="card-header"><h2 class="card-title"><i class="ti ti-movie" aria-hidden="true"></i>Timelapse de la cámara</h2></div>
+						<p class="card-help">Fotos automáticas de la ESP32-CAMERA. Puedes ocultar un cuadro si no es apropiado.</p>
+						<div id="teacher-timelapse" style="margin-top:10px"></div>
+					</article>
+
+					<article class="card teacher-card-block">
+						<div class="card-header"><h2 class="card-title"><i class="ti ti-photo" aria-hidden="true"></i>Comparar fotos</h2></div>
+						<div id="photo-compare"></div>
+					</article>
+
+					<article class="card teacher-card-block">
+						<div class="card-header"><h2 class="card-title"><i class="ti ti-timeline" aria-hidden="true"></i>Línea de tiempo</h2></div>
+						<div id="project-timeline" class="timeline"></div>
+					</article>
+				</section>
+
+				<!-- Vistas: cuestionarios (lista, editor y resultados) -->
+				<section id="view-quizzes" hidden aria-live="polite"></section>
 			</div>
 		</section>
 	</main>
-	<script src="js/docente.js"></script>
+
+	<div class="project-modal-backdrop" id="teacher-modal" hidden>
+		<section class="project-modal" role="dialog" aria-modal="true" aria-labelledby="teacher-modal-title">
+			<button class="project-modal-close" type="button" id="teacher-modal-close" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button>
+			<div class="project-modal-title-row"><span class="eyebrow">Gestión del proyecto</span><h2 class="project-modal-title" id="teacher-modal-title"></h2></div>
+			<form id="teacher-modal-form"></form>
+		</section>
+	</div>
+
+	<script type="module" src="js/docente/main.js"></script>
 </body>
 </html>

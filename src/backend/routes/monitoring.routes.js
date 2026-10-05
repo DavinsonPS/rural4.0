@@ -1,271 +1,101 @@
-const crypto = require('node:crypto');
 const fs = require('node:fs');
-const path = require('node:path');
 const express = require('express');
 const multer = require('multer');
-const { pool } = require('../db');
+const lecturasService = require('../services/lecturas.service');
+const bitacorasService = require('../services/bitacoras.service');
+const fotografiasService = require('../services/fotografias.service');
+const { requireSession } = require('../middlewares/auth');
+const { requireDevice, authenticateDevice, deviceKey } = require('../middlewares/device-auth');
+const { UnauthorizedError } = require('../lib/errors');
+const { handler } = require('../lib/http');
 
 const router = express.Router();
-const photoDirectory = path.join(__dirname, '..', 'uploads', 'photos');
-fs.mkdirSync(photoDirectory, { recursive: true });
+fs.mkdirSync(fotografiasService.photoDirectory, { recursive: true });
 const upload = multer({
-	dest: photoDirectory,
+	dest: fotografiasService.photoDirectory,
 	limits: { fileSize: 8 * 1024 * 1024 },
 	fileFilter: (request, file, callback) => callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)),
 });
+const uploadRawJpeg = express.raw({ type: 'image/jpeg', limit: '8mb' });
 
-async function getOwnedProject(projectId, userId) {
-	const [rows] = await pool.query(
-		`SELECT p.id, p.id_dispositivo FROM tblh_proyectos p
-		 WHERE p.id = ? AND p.id_usuario = ? AND p.estado = 1 LIMIT 1`,
-		[projectId, userId],
-	);
-	return rows[0] || null;
-}
+// Lecturas del ESP32 de sensores (URL y header usados por el firmware: no cambiar).
+router.post('/lecturas', requireDevice({ linked: true }), handler('No fue posible guardar la lectura.', async (request, response) => {
+	response.status(201).json(await lecturasService.record(request.device, request.body));
+}));
 
-async function getDevice(request) {
-	const key = (request.get('x-device-key') || '').trim();
-	if (!key) return null;
-	const hash = crypto.createHash('sha256').update(key).digest('hex');
-	const [rows] = await pool.query(
-		`SELECT d.id, p.id AS id_proyecto
-		 FROM tbld_dispositivos d
-		 JOIN tblh_proyectos p ON p.id_dispositivo = d.id AND p.estado = 1
-		 WHERE d.api_key_hash = ? AND d.estado = 1 LIMIT 1`,
-		[hash],
-	);
-	return rows[0] || null;
-}
+router.get('/bitacoras', requireSession, handler('No fue posible consultar las bitácoras.', async (request, response) => {
+	response.json(await bitacorasService.list(request.user, request.query.id_proyecto));
+}));
 
-function validNumber(value) {
-	return value === null || value === undefined || value === '' || Number.isFinite(Number(value));
-}
+router.post('/bitacoras', requireSession, handler('No fue posible guardar la bitácora.', async (request, response) => {
+	response.status(201).json(await bitacorasService.save(request.user, request.body));
+}));
 
-function validTemperature(value) {
-	return value === null || value === undefined || value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 50);
-}
+router.put('/bitacoras/:logId', requireSession, handler('No fue posible actualizar la bitácora.', async (request, response) => {
+	response.json(await bitacorasService.update(request.user, request.params.logId, request.body));
+}));
 
-function toMysqlDateTime(value) {
-	if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(value || ''))) return value;
-	const parsedDate = value ? new Date(value) : new Date();
-	if (Number.isNaN(parsedDate.getTime())) return null;
-	return parsedDate.toISOString().slice(0, 19).replace('T', ' ');
-}
+router.delete('/bitacoras/:logId', requireSession, handler('No fue posible eliminar la bitácora.', async (request, response) => {
+	response.json(await bitacorasService.remove(request.user, request.params.logId));
+}));
 
-router.post('/lecturas', async (request, response) => {
+// Quién sube la foto se decide antes de leer el archivo: la ESP32-CAMERA con X-Device-Key
+// (URL usada por el firmware) o el estudiante con su sesión.
+async function identifyUploader(request, response, next) {
 	try {
-		const device = await getDevice(request);
-		if (!device) return response.status(401).json({ error: 'Clave de dispositivo inválida.' });
-		const body = request.body || {};
-		if (!body.fecha_lectura || !validTemperature(body.temperatura_c) || !validNumber(body.humedad_ambiente_pct) || !validNumber(body.humedad_suelo_pct) || !validNumber(body.intensidad_luz_lux)) {
-			return response.status(400).json({ error: 'Fecha o medición inválida.' });
+		if (deviceKey(request)) {
+			const device = await authenticateDevice(request);
+			if (!device || !device.id_proyecto) return next(new UnauthorizedError('Clave de dispositivo inválida.'));
+			request.device = device;
+			return next();
 		}
-		await pool.query(
-			`INSERT INTO tblh_registros_monitoreo
-			 (id_proyecto, id_dispositivo, fecha_lectura, temperatura_c, humedad_ambiente_pct, humedad_suelo_pct, intensidad_luz_lux)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			[device.id_proyecto, device.id, body.fecha_lectura, body.temperatura_c, body.humedad_ambiente_pct, body.humedad_suelo_pct, body.intensidad_luz_lux ?? null],
-		);
-		await pool.query('UPDATE tbld_dispositivos SET fecha_ultimo_contacto = CURRENT_TIMESTAMP WHERE id = ?', [device.id]);
-		return response.status(201).json({ status: 'ok', intensidad_luz_lux: body.intensidad_luz_lux ?? null });
+		return requireSession(request, response, next);
 	} catch (error) {
-		console.error('Monitoring reading failed:', error.message);
-		return response.status(500).json({ error: 'No fue posible guardar la lectura.' });
+		error.failureMessage = 'No fue posible guardar la fotografía.';
+		return next(error);
 	}
-});
+}
 
-router.post('/bitacoras', async (request, response) => {
-	const projectId = Number(request.body?.id_proyecto);
-	const userId = Number(request.body?.id_usuario);
-	const temperature = request.body?.temperatura_ambiente_c;
-	const water = request.body?.agua_aplicada_ml;
-	const soilHumidity = request.body?.humedad_suelo_pct;
-	const date = String(request.body?.fecha_bitacora || '').trim();
-	const wateringTime = String(request.body?.hora_riego || '').trim() || null;
-	const leafColor = String(request.body?.color_hojas || '').trim() || null;
-	const observation = String(request.body?.observacion || '').trim() || null;
-	const completedChallenges = Array.isArray(request.body?.retos_completados)
-		? request.body.retos_completados.filter((challenge) => /^[a-z]+$/.test(String(challenge))).slice(0, 6)
-		: [];
-	const completedChallengesJson = completedChallenges.length ? JSON.stringify(completedChallenges) : null;
+function parsePhotoUpload(request, response, next) {
+	if (request.is('image/jpeg')) return uploadRawJpeg(request, response, next);
+	return upload.single('foto')(request, response, next);
+}
 
-	if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(userId) || userId <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date)
-		|| !validTemperature(temperature) || !validNumber(water) || !validNumber(soilHumidity)) {
-		return response.status(400).json({ error: 'Los datos de la bitácora son inválidos.' });
-	}
+// El archivo temporal de multer se elimina siempre que no haya terminado en su carpeta final.
+function removeTemporaryUpload(request) {
+	if (request.file?.path) fs.rmSync(request.file.path, { force: true });
+}
 
+router.post('/fotografias', identifyUploader, parsePhotoUpload, async (request, response, next) => {
 	try {
-		if (!await getOwnedProject(projectId, userId)) return response.status(404).json({ error: 'Proyecto no encontrado o inactivo.' });
-		const connection = await pool.getConnection();
-		try {
-			await connection.beginTransaction();
-			const [existingRows] = await connection.query(
-				'SELECT id FROM tblh_bitacoras_diarias WHERE id_proyecto = ? AND fecha_bitacora = ? LIMIT 1 FOR UPDATE',
-				[projectId, date],
-			);
-			if (existingRows.length) {
-				await connection.query(
-					`UPDATE tblh_bitacoras_diarias SET temperatura_ambiente_c = ?, agua_aplicada_ml = ?, hora_riego = ?, humedad_suelo_pct = ?, color_hojas = ?, observacion = ?, retos_completados = ?, estado = 1
-					 WHERE id = ?`,
-					[temperature ?? null, water ?? null, wateringTime, soilHumidity ?? null, leafColor, observation, completedChallengesJson, existingRows[0].id],
-				);
-			} else {
-				await connection.query(
-					`INSERT INTO tblh_bitacoras_diarias
-						(id_proyecto, fecha_bitacora, temperatura_ambiente_c, agua_aplicada_ml, hora_riego, humedad_suelo_pct, color_hojas, observacion, retos_completados)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-					[projectId, date, temperature ?? null, water ?? null, wateringTime, soilHumidity ?? null, leafColor, observation, completedChallengesJson],
-				);
-			}
-			await connection.commit();
-		} catch (error) {
-			await connection.rollback();
-			throw error;
-		} finally {
-			connection.release();
-		}
-		return response.status(201).json({ status: 'ok', fecha_bitacora: date });
+		const rawJpeg = Buffer.isBuffer(request.body);
+		const body = rawJpeg ? {} : request.body || {};
+		const result = await fotografiasService.upload({
+			actor: request.user,
+			device: request.device,
+			requestedProjectId: body.id_proyecto,
+			photo: rawJpeg
+				? { buffer: request.body }
+				: request.file ? { tempPath: request.file.path, mimetype: request.file.mimetype, size: request.file.size } : null,
+			fechaFotografia: body.fecha_fotografia,
+			fechaBitacora: body.fecha_bitacora,
+		});
+		response.status(201).json(result);
 	} catch (error) {
-		console.error('Daily log failed:', error.message);
-		return response.status(500).json({ error: 'No fue posible guardar la bitácora.' });
+		error.failureMessage = 'No fue posible guardar la fotografía.';
+		next(error);
+	} finally {
+		removeTemporaryUpload(request);
 	}
 });
 
-router.get('/bitacoras', async (request, response) => {
-	const projectId = Number(request.query.id_proyecto);
-	const userId = Number(request.query.id_usuario);
-	if (!projectId || !userId) return response.status(400).json({ error: 'Proyecto y usuario son obligatorios.' });
-	try {
-		if (!await getOwnedProject(projectId, userId)) return response.status(404).json({ error: 'Proyecto no encontrado.' });
-		const [rows] = await pool.query(
-			`SELECT id, fecha_bitacora, temperatura_ambiente_c, agua_aplicada_ml, hora_riego,
-				humedad_suelo_pct, color_hojas, observacion, retos_completados
-			 FROM tblh_bitacoras_diarias WHERE id_proyecto = ? AND estado = 1
-			 ORDER BY fecha_bitacora DESC`,
-			[projectId],
-		);
-		return response.json(rows);
-	} catch (error) {
-		console.error('Daily logs lookup failed:', error.message);
-		return response.status(500).json({ error: 'No fue posible consultar las bitácoras.' });
-	}
-});
+router.get('/fotografias', requireSession, handler('No fue posible consultar las fotografías.', async (request, response) => {
+	response.json(await fotografiasService.list(request.user, request.query.id_proyecto, request.query.origen));
+}));
 
-router.put('/bitacoras/:logId', async (request, response) => {
-	const logId = Number(request.params.logId);
-	const projectId = Number(request.body?.id_proyecto);
-	const userId = Number(request.body?.id_usuario);
-	if (!logId || !projectId || !userId) return response.status(400).json({ error: 'Bitácora, proyecto y usuario son obligatorios.' });
-	try {
-		if (!await getOwnedProject(projectId, userId)) return response.status(404).json({ error: 'Proyecto no encontrado.' });
-		const fields = {
-			temperatura_ambiente_c: request.body?.temperatura_ambiente_c ?? null,
-			agua_aplicada_ml: request.body?.agua_aplicada_ml ?? null,
-			hora_riego: request.body?.hora_riego || null,
-			humedad_suelo_pct: request.body?.humedad_suelo_pct ?? null,
-			color_hojas: request.body?.color_hojas || null,
-			observacion: String(request.body?.observacion || '').trim() || null,
-			retos_completados: Array.isArray(request.body?.retos_completados)
-				? JSON.stringify(request.body.retos_completados.filter((challenge) => /^[a-z]+$/.test(String(challenge))).slice(0, 6))
-				: null,
-		};
-		await pool.query(
-			`UPDATE tblh_bitacoras_diarias SET temperatura_ambiente_c = ?, agua_aplicada_ml = ?, hora_riego = ?, humedad_suelo_pct = ?, color_hojas = ?, observacion = ?, retos_completados = ?
-			 WHERE id = ? AND id_proyecto = ? AND estado = 1`,
-			[fields.temperatura_ambiente_c, fields.agua_aplicada_ml, fields.hora_riego, fields.humedad_suelo_pct, fields.color_hojas, fields.observacion, fields.retos_completados, logId, projectId],
-		);
-		return response.json({ message: 'Bitácora actualizada correctamente.' });
-	} catch (error) {
-		console.error('Daily log update failed:', error.message);
-		return response.status(500).json({ error: 'No fue posible actualizar la bitácora.' });
-	}
-});
-
-router.delete('/bitacoras/:logId', async (request, response) => {
-	const logId = Number(request.params.logId);
-	const projectId = Number(request.query.id_proyecto);
-	const userId = Number(request.query.id_usuario);
-	if (!logId || !projectId || !userId) return response.status(400).json({ error: 'Bitácora, proyecto y usuario son obligatorios.' });
-	try {
-		if (!await getOwnedProject(projectId, userId)) return response.status(404).json({ error: 'Proyecto no encontrado.' });
-		await pool.query('UPDATE tblh_bitacoras_diarias SET estado = 0 WHERE id = ? AND id_proyecto = ?', [logId, projectId]);
-		return response.json({ message: 'Bitácora eliminada correctamente.' });
-	} catch (error) {
-		console.error('Daily log deletion failed:', error.message);
-		return response.status(500).json({ error: 'No fue posible eliminar la bitácora.' });
-	}
-});
-
-router.post('/fotografias', upload.single('foto'), async (request, response) => {
-	try {
-		const projectId = Number(request.body?.id_proyecto);
-		const userId = Number(request.body?.id_usuario);
-		const ownedProject = await getOwnedProject(projectId, userId);
-		if (!ownedProject) return response.status(404).json({ error: 'Proyecto no encontrado.' });
-		const device = await getDevice(request);
-		if (!request.file) return response.status(400).json({ error: 'La foto JPEG es obligatoria.' });
-		const date = new Date();
-		const folder = path.join(photoDirectory, String(date.getUTCFullYear()), String(date.getUTCMonth() + 1).padStart(2, '0'));
-		fs.mkdirSync(folder, { recursive: true });
-		const extension = request.file.mimetype === 'image/png' ? 'png' : request.file.mimetype === 'image/webp' ? 'webp' : 'jpg';
-		const fileName = `${projectId}_${date.toISOString().replace(/[:.]/g, '-')}_${crypto.randomBytes(4).toString('hex')}.${extension}`;
-		const finalPath = path.join(folder, fileName);
-		fs.renameSync(request.file.path, finalPath);
-		const relativePath = path.relative(path.join(__dirname, '..'), finalPath).replaceAll(path.sep, '/');
-		const photoDateTime = toMysqlDateTime(request.body.fecha_fotografia || date);
-		if (!photoDateTime) return response.status(400).json({ error: 'La fecha de la fotografía es inválida.' });
-		await pool.query(
-			`INSERT INTO tblh_fotografias_monitoreo
-			 (id_proyecto, id_dispositivo, fecha_fotografia, ruta_archivo, nombre_archivo, tamano_bytes)
-			 VALUES (?, ?, ?, ?, ?, ?)`,
-			[projectId, device?.id || ownedProject.id_dispositivo || null, photoDateTime, relativePath, fileName, request.file.size],
-		);
-		const photoDate = String(request.body.fecha_bitacora || request.body.fecha_fotografia || date.toISOString()).slice(0, 10);
-		const [logs] = await pool.query(
-			`SELECT id, retos_completados FROM tblh_bitacoras_diarias
-			 WHERE id_proyecto = ? AND fecha_bitacora = ? AND estado = 1 LIMIT 1`,
-			[projectId, photoDate],
-		);
-		if (logs.length) {
-			let completedChallenges = [];
-			try {
-				completedChallenges = JSON.parse(logs[0].retos_completados || '[]');
-			} catch {
-				completedChallenges = [];
-			}
-			if (!completedChallenges.includes('foto')) {
-				completedChallenges.push('foto');
-				await pool.query(
-					'UPDATE tblh_bitacoras_diarias SET retos_completados = ? WHERE id = ?',
-					[JSON.stringify(completedChallenges), logs[0].id],
-				);
-			}
-		}
-		return response.status(201).json({ status: 'ok', ruta: `/uploads/${relativePath.replace('uploads/', '')}` });
-	} catch (error) {
-		if (request.file?.path) fs.rmSync(request.file.path, { force: true });
-		console.error('Monitoring photo failed:', error.message);
-		return response.status(500).json({ error: 'No fue posible guardar la fotografía.' });
-	}
-});
-
-router.get('/fotografias', async (request, response) => {
-	const projectId = Number(request.query.id_proyecto);
-	const userId = Number(request.query.id_usuario);
-	if (!projectId || !userId) return response.status(400).json({ error: 'Proyecto y usuario son obligatorios.' });
-	try {
-		if (!await getOwnedProject(projectId, userId)) return response.status(404).json({ error: 'Proyecto no encontrado.' });
-		const [rows] = await pool.query(
-			`SELECT id, fecha_fotografia, ruta_archivo, nombre_archivo
-			 FROM tblh_fotografias_monitoreo WHERE id_proyecto = ? AND estado = 1
-			 ORDER BY fecha_fotografia DESC`,
-			[projectId],
-		);
-		return response.json(rows.map((photo) => ({ ...photo, url: `/${photo.ruta_archivo}`.replace('/uploads/uploads/', '/uploads/') })));
-	} catch (error) {
-		console.error('Photo album lookup failed:', error.message);
-		return response.status(500).json({ error: 'No fue posible consultar las fotografías.' });
-	}
-});
+// Timelapse con las fotos de la ESP32-CAMERA: ?id_proyecto=&rango=24h|7d|30d|todo&max=
+router.get('/timelapse', requireSession, handler('No fue posible armar el timelapse.', async (request, response) => {
+	response.json(await fotografiasService.timelapse(request.user, request.query.id_proyecto, request.query.rango, request.query.max));
+}));
 
 module.exports = router;

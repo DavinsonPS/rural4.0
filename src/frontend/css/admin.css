@@ -1,0 +1,47 @@
+/* Administración: complementa styles.css y docente.css. */
+
+.admin-shell .sidebar { background: #13290a; }
+.admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.admin-group-title { margin: 1.25rem 0 .6rem; color: var(--text-secondary); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.admin-card { display: grid; gap: 4px; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1); }
+.admin-card strong { color: var(--text-primary); font-size: 22px; }
+.admin-card span { color: var(--text-secondary); font-size: 12px; }
+.admin-card small { color: var(--text-muted); font-size: 11px; }
+.admin-card.is-warning { border-color: #f0c9a0; background: #fff8ef; }
+
+.admin-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.admin-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.admin-filters .form-row { margin-bottom: 0; }
+.admin-filters input[type="text"], .admin-filters input[type="date"], .admin-filters select { min-width: 150px; }
+.admin-filters input[type="text"] { min-width: 260px; }
+.admin-card a { color: #3b6d11; font-weight: 600; }
+.form-row input[type="date"], .form-row input[type="email"], .form-row input[type="tel"] { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1); color: var(--text-primary); font: inherit; font-size: 13px; }
+.admin-shell .save-btn.compact-action, .admin-toolbar .save-btn { width: auto; padding-inline: 14px; }
+
+.admin-table td { white-space: normal; vertical-align: top; }
+.admin-table td small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 11px; font-weight: 400; }
+.admin-table tr.is-inactive td { opacity: .55; }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.admin-actions button { padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-1); color: var(--text-secondary); cursor: pointer; font: inherit; font-size: 11px; white-space: nowrap; }
+.admin-actions button:hover { border-color: var(--border-stronger); color: #3b6d11; }
+.admin-actions button.is-danger { color: #a33f32; }
+.admin-actions button.is-danger:hover { border-color: #a33f32; }
+.admin-actions button:disabled { cursor: not-allowed; opacity: .5; }
+
+.role-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: .03em; }
+.role-ESTUDIANTE { background: #eaf3de; color: #3b6d11; }
+.role-DOCENTE { background: #e3f0f2; color: #205b66; }
+.role-ADMINISTRADOR { background: #efe6f6; color: #5b2d7a; }
+.state-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+.state-dot::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.state-dot.is-on { color: #3b6d11; }
+.state-dot.is-off { color: #9aa39a; }
+.state-dot.is-warn { color: #9a4f0b; }
+
+.admin-notice { margin-bottom: 1rem; padding: 10px 12px; border-radius: var(--radius); background: #fff5d6; color: #6b5200; font-size: 12px; line-height: 1.5; }
+.admin-notice.is-success { background: #eaf3de; color: #27500a; }
+.invitation-link { display: flex; gap: 6px; margin-top: 8px; }
+.invitation-link input { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; font-size: 12px; }
+.audit-detail { max-width: 320px; color: var(--text-muted); font-family: ui-monospace, Consolas, monospace; font-size: 11px; word-break: break-word; }
+.pager { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.pager .secondary-btn { margin-bottom: 0; }

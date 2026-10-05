@@ -70,10 +70,13 @@ DB_USER=BD_SYSTEM_RURAL40
 DB_PASSWORD=la_contrasena_definida_para_el_usuario
 DB_CONNECTION_LIMIT=10
 
-DEVICE_REGISTRATION_KEY=cambia-esta-clave-local
 SESSION_SECRET=cambia-este-secreto-local
+DEVICE_PROVISIONING_KEY=cambia-esta-clave-local
+DEVICE_REGISTRATION_KEY=cambia-esta-clave-local
 APP_URL=http://localhost:3000
 ```
+
+`SESSION_SECRET` es obligatoria: sin ella la aplicación no arranca. La plantilla completa está en `src/backend/.env.example`.
 
 Las variables `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_SECURE`, `EMAIL_USER`, `EMAIL_PASS` y `MAIL_FROM` solo son necesarias para probar recuperación de contraseña y verificación por correo. No publiques el archivo `.env` ni sus contraseñas.
 
@@ -131,13 +134,21 @@ node --check src/frontend/js/dashboard.js
 
 ## Pruebas automatizadas
 
-Desde la carpeta raíz, ejecuta la prueba del historial de monitoreo:
+Pruebas unitarias (no necesitan base de datos), desde `src/backend`:
 
 ```powershell
-node --test src/backend/tests/monitoring-history.test.js
+npm test
 ```
 
-La prueba verifica que la consulta requiera el usuario propietario del proyecto, rechace accesos de otros usuarios y devuelva las lecturas en orden cronológico. El backend no tiene configurado un script `npm test`; por eso se ejecuta directamente con el test runner integrado de Node.js.
+Cubren políticas de acceso, semáforo, utilidades, rutas, cuestionarios, administración y cámara.
+
+Pruebas de extremo a extremo (necesitan la base local en Docker y el servidor corriendo):
+
+```powershell
+node local/pruebas/todas.mjs
+```
+
+Guía para levantar el entorno local: [local/README.md](local/README.md).
 
 ## Problemas frecuentes
 
@@ -161,12 +172,30 @@ Revisa las variables SMTP. El servidor puede iniciar sin ellas, pero las funcion
 
 ```text
 Desarrollo/
-├── db/                    Scripts de esquema, migraciones y datos iniciales
-├── esp32/                 Firmware y simulación del ESP32
-├── esp32-camara/          Firmware y simulación de la ESP32-CAM
+├── db/                    Esquema base original (ver db/README.md para las migraciones)
+├── esp32/                 Firmware del ESP32 de sensores (Arduino)
+├── esp32-camara/          OBSOLETO: sketch antiguo de la cámara (ver esp32-camara/OBSOLETO.md)
+├── firmware/
+│   └── esp32-camara/      Firmware vigente de la ESP32-CAM (PlatformIO)
+├── local/                 Entorno de pruebas locales: Docker (MariaDB), simulador y pruebas E2E
+├── scripts/               Empaquetado del despliegue para Plesk
 └── src/
-    ├── backend/           API Express, conexión MariaDB y archivos subidos
-    └── frontend/          HTML, CSS y JavaScript de la aplicación web
+    ├── backend/           API Express en capas
+    │   ├── routes/ middlewares/ policies/ services/ repositories/
+    │   ├── config/ lib/   Catálogos, umbrales y utilidades
+    │   ├── migraciones/   Cambios de base de datos (se importan a mano)
+    │   └── tests/         Pruebas unitarias (npm test)
+    └── frontend/          HTML, CSS y JS por rol: estudiante, docente y administrador
 ```
 
-Para configurar los dispositivos y sus endpoints, consulta [src/backend/esp32-firmware/README.md](src/backend/esp32-firmware/README.md).
+Roles: **estudiante** (proyectos, monitoreo, bitácoras, cuestionarios), **docente** (semáforo de sus
+estudiantes, fichas de proyecto, cuestionarios con banco de preguntas) y **administrador** (usuarios
+con invitación por correo, catálogos, dispositivos y auditoría).
+
+Más documentación:
+
+- [MAPA-SISTEMA.md](MAPA-SISTEMA.md): mapa completo (rutas, tablas, archivos).
+- [CAMBIOS.md](CAMBIOS.md): qué cambió respecto a la versión anterior.
+- [PLAN-MIGRACION.md](PLAN-MIGRACION.md): plan de la migración a capas y del módulo docente.
+- [DESPLIEGUE-PLESK.md](DESPLIEGUE-PLESK.md): cómo actualizar el servidor de Plesk.
+- Dispositivos y endpoints: [src/backend/esp32-firmware/README.md](src/backend/esp32-firmware/README.md).

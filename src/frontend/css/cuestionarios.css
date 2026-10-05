@@ -1,0 +1,84 @@
+/* Cuestionarios: compartido por la vista del estudiante y la del docente. */
+
+.quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.quiz-card { display: grid; gap: 8px; align-content: start; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.quiz-card h3 { color: var(--text-primary); font-size: 15px; }
+.quiz-card p { color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
+.quiz-card .save-btn, .quiz-card .secondary-btn { width: auto; justify-self: start; margin-bottom: 0; }
+.quiz-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--text-muted); font-size: 11px; }
+
+.quiz-state { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.quiz-state.is-pending { background: #fff5d6; color: #7a5a00; }
+.quiz-state.is-done { background: #eaf3de; color: #3b6d11; }
+.quiz-state.is-closed { background: #edf0f2; color: #53636a; }
+.quiz-state.is-draft { background: #edf2f3; color: #205b66; }
+.quiz-state.is-open { background: #eaf3de; color: #3b6d11; }
+.quiz-state.is-scheduled { background: #fdebd7; color: #9a4f0b; }
+
+.quiz-sheet { display: grid; gap: 12px; }
+.quiz-header { padding: 1rem 1.25rem; border: 1px solid #cbdcaf; border-radius: 12px; background: #eef6e6; }
+.quiz-header h2 { color: var(--text-primary); font-size: 19px; }
+.quiz-header p { margin-top: 4px; color: var(--text-secondary); font-size: 12px; }
+.quiz-result { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 1rem 1.25rem; border-radius: 12px; background: #173404; color: #eaf3de; }
+.quiz-result strong { font-size: 26px; }
+.quiz-result span { font-size: 12px; line-height: 1.5; }
+
+.quiz-question { min-width: 0; margin: 0; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-1); }
+/* float saca el legend del borde del fieldset y lo deja dentro de la tarjeta */
+.quiz-question legend { float: left; width: 100%; padding: 0; }
+.quiz-question legend + * { clear: both; }
+.quiz-question legend, .quiz-question-title { display: flex; gap: 8px; margin-bottom: 10px; color: var(--text-primary); font-size: 14px; font-weight: 600; line-height: 1.4; }
+.quiz-question-number { flex-shrink: 0; display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #eaf3de; color: #3b6d11; font-size: 12px; }
+.quiz-options { display: grid; gap: 6px; }
+.quiz-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--text-primary); cursor: pointer; font-size: 13px; }
+.quiz-option:hover { border-color: var(--border-stronger); }
+.quiz-option input { accent-color: #3b6d11; }
+.quiz-option:has(input:checked) { border-color: #639922; background: #f1f8e8; }
+.quiz-option.is-correct { border-color: #639922; background: #eaf3de; }
+.quiz-option.is-wrong { border-color: #d9a39b; background: #fbe3df; }
+.quiz-option-tag { margin-left: auto; font-size: 11px; font-weight: 600; }
+.quiz-option.is-correct .quiz-option-tag { color: #3b6d11; }
+.quiz-option.is-wrong .quiz-option-tag { color: #a33f32; }
+.quiz-explanation { margin-top: 8px; padding: 8px 10px; border-radius: var(--radius); background: #f5f9ef; color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
+.quiz-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.quiz-actions .save-btn { width: auto; padding-inline: 18px; }
+.quiz-actions .secondary-btn { margin-bottom: 0; }
+
+/* Resultados del docente */
+.result-bars { display: grid; gap: 6px; margin-top: 6px; }
+.result-bar { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 10px; align-items: center; font-size: 12px; }
+.result-bar-label { display: flex; gap: 6px; color: var(--text-secondary); }
+.result-bar-label.is-correct { color: #3b6d11; font-weight: 600; }
+.result-bar-track { position: relative; height: 8px; margin-top: 4px; border-radius: 4px; background: #edf2f3; overflow: hidden; }
+.result-bar-fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: #9fb3b8; }
+.result-bar-label.is-correct + .result-bar-track .result-bar-fill, .result-bar .is-correct .result-bar-fill { background: #639922; }
+.result-bar-count { color: var(--text-muted); font-size: 11px; text-align: right; }
+.question-score { margin-left: auto; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.question-score.is-low { color: #a33f32; }
+.question-score.is-mid { color: #9a4f0b; }
+.question-score.is-high { color: #3b6d11; }
+
+.mastery-list { display: grid; gap: 10px; }
+.mastery-row { display: grid; grid-template-columns: 170px minmax(0, 1fr) 60px; gap: 10px; align-items: center; font-size: 12px; }
+.mastery-row span:first-child { color: var(--text-primary); font-weight: 600; }
+.mastery-row strong { text-align: right; }
+
+/* Editor del docente */
+.form-row input[type="datetime-local"] { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1); color: var(--text-primary); font: inherit; font-size: 13px; }
+.form-row input[type="datetime-local"]:disabled { opacity: .7; }
+.bank-list { display: grid; gap: 8px; max-height: 480px; overflow-y: auto; padding-right: 4px; }
+.bank-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1); font-size: 12px; }
+.bank-item:has(input:checked) { border-color: #639922; background: #f5f9ef; }
+.bank-item input { margin-top: 3px; accent-color: #3b6d11; }
+.bank-item strong { display: block; color: var(--text-primary); font-size: 13px; line-height: 1.4; }
+.bank-item small { color: var(--text-muted); }
+.bank-item-actions { display: flex; gap: 4px; }
+.bank-item-actions button { padding: 3px 7px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; font: inherit; font-size: 11px; }
+.bank-correct { color: #3b6d11; }
+.option-editor { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; margin-bottom: 6px; }
+
+@media (max-width: 560px) {
+	.mastery-row { grid-template-columns: 1fr 50px; }
+	.mastery-row .bar-track, .mastery-row .result-bar-track { grid-column: 1 / -1; grid-row: 2; }
+	.result-bar { grid-template-columns: 1fr; }
+}

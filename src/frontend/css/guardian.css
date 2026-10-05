@@ -1,0 +1,82 @@
+/* Guardián: mascota que acompaña al estudiante (abajo a la izquierda del contenido). */
+
+.guardian { position: fixed; z-index: 25; bottom: 14px; left: calc(210px + 14px); display: flex; align-items: flex-end; gap: 6px; pointer-events: none; }
+.guardian > * { pointer-events: auto; }
+.guardian-figure { position: relative; width: 104px; height: 120px; padding: 0; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 6px 10px rgb(31 45 26 / 18%)); transition: transform .25s ease; }
+.guardian-figure:hover { transform: translateY(-3px) scale(1.03); }
+.guardian-figure:focus-visible { outline: 3px solid #97c459; outline-offset: 4px; border-radius: 16px; }
+.gd-svg { width: 100%; height: 100%; overflow: visible; }
+
+.guardian-bubble { position: relative; max-width: 290px; margin-bottom: 64px; padding: 12px 14px 10px; border: 1px solid #cbdcaf; border-radius: 14px 14px 14px 4px; background: #fff; box-shadow: 0 12px 30px rgb(31 45 26 / 16%); color: var(--text-primary); font-size: 13px; line-height: 1.45; animation: gd-pop .28s ease-out; }
+.guardian-bubble[hidden] { display: none; }
+.guardian-bubble::before { content: ''; position: absolute; left: -7px; bottom: 12px; width: 12px; height: 12px; border-left: 1px solid #cbdcaf; border-bottom: 1px solid #cbdcaf; background: #fff; transform: rotate(45deg); }
+.guardian-name { display: block; margin-bottom: 3px; color: #639922; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.guardian-text { padding-right: 16px; }
+.guardian-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.guardian-actions button { padding: 5px 9px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface-2); color: var(--text-secondary); cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; }
+.guardian-actions button.is-primary { border-color: #3b6d11; background: #3b6d11; color: #eaf3de; }
+.guardian-close { position: absolute; top: 6px; right: 6px; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 14px; }
+.guardian-close:hover { background: #f1f5ec; color: var(--text-primary); }
+
+/* Minimizado: solo una burbujita con la carita */
+.guardian.is-minimized .guardian-figure { width: 56px; height: 64px; }
+.guardian.is-minimized .guardian-bubble { display: none; }
+
+/* --- Animaciones base --- */
+.gd-body { transform-origin: 100px 210px; animation: gd-breathe 4s ease-in-out infinite; }
+.gd-head { transform-origin: 100px 130px; animation: gd-breathe-head 4s ease-in-out infinite; }
+.gd-eyes { transform-origin: 100px 82px; animation: gd-blink 5.5s infinite; }
+.gd-antenna-left { transform-origin: 84px 40px; animation: gd-antenna 3.2s ease-in-out infinite; }
+.gd-antenna-right { transform-origin: 116px 40px; animation: gd-antenna 3.2s ease-in-out infinite reverse; }
+.gd-led { animation: gd-led 1.6s ease-in-out infinite; }
+.gd-arm-right { transform-origin: 146px 150px; }
+
+/* --- Ánimos (data-mood en .guardian) --- */
+.gd-mouth, .gd-eyes-closed, .gd-brows, .gd-sparkles, .gd-zzz, .gd-question { display: none; }
+.guardian[data-mood="normal"] .gd-mouth-smile,
+.guardian[data-mood="feliz"] .gd-mouth-open,
+.guardian[data-mood="celebrando"] .gd-mouth-open,
+.guardian[data-mood="preocupado"] .gd-mouth-worried,
+.guardian[data-mood="confundido"] .gd-mouth-o,
+.guardian[data-mood="dormido"] .gd-mouth-sleep { display: inline; }
+.guardian[data-mood="preocupado"] .gd-brows-worried, .guardian[data-mood="confundido"] .gd-brows-confused { display: inline; }
+.guardian[data-mood="confundido"] .gd-question { display: inline; animation: gd-float 2s ease-in-out infinite; }
+.guardian[data-mood="celebrando"] .gd-sparkles { display: inline; animation: gd-twinkle 1s ease-in-out infinite; }
+.guardian[data-mood="celebrando"] .gd-body, .guardian[data-mood="celebrando"] .gd-head { animation: gd-jump .9s ease-in-out infinite; }
+.guardian[data-mood="celebrando"] .gd-arm-right, .guardian.is-waving .gd-arm-right { animation: gd-wave .5s ease-in-out 3; }
+.guardian[data-mood="feliz"] .gd-arm-right { animation: gd-wave .5s ease-in-out 2; }
+.guardian[data-mood="preocupado"] .gd-antenna { animation-duration: 1.2s; }
+.guardian[data-mood="dormido"] .gd-eyes { display: none; }
+.guardian[data-mood="dormido"] .gd-eyes-closed { display: inline; }
+.guardian[data-mood="dormido"] .gd-zzz { display: inline; animation: gd-float 3s ease-in-out infinite; }
+.guardian[data-mood="dormido"] .gd-body, .guardian[data-mood="dormido"] .gd-head { animation-duration: 7s; }
+.guardian[data-mood="dormido"] .gd-antenna { animation: none; transform: rotate(18deg); }
+
+@keyframes gd-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, .985); } }
+@keyframes gd-breathe-head { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(2px); } }
+@keyframes gd-blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes gd-antenna { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes gd-led { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes gd-wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg); } }
+@keyframes gd-jump { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } }
+@keyframes gd-float { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(-5px); opacity: .7; } }
+@keyframes gd-twinkle { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+@keyframes gd-pop { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+	.guardian *, .guardian-bubble { animation: none !important; transition: none !important; }
+}
+
+/* Espacio para que Guardián no tape lo último de la página */
+body.has-guardian .content { padding-bottom: 150px; }
+
+@media (max-width: 800px) {
+	.guardian { left: calc(64px + 8px); }
+}
+
+@media (max-width: 480px) {
+	.guardian { bottom: 8px; }
+	.guardian-figure { width: 72px; height: 84px; }
+	.guardian-bubble { max-width: calc(100vw - 64px - 92px); margin-bottom: 40px; font-size: 12px; }
+	.guardian.is-minimized .guardian-figure { width: 48px; height: 56px; }
+}
