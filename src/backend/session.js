@@ -1,7 +1,11 @@
 const crypto = require('node:crypto');
 
 const cookieName = 'rural40_session';
-const sessionSecret = process.env.SESSION_SECRET || 'cambia-esta-clave-en-produccion';
+const sessionSecret = process.env.SESSION_SECRET;
+
+if (!sessionSecret) {
+	throw new Error('Falta la variable de entorno SESSION_SECRET.');
+}
 
 function encode(value) {
 	return Buffer.from(value).toString('base64url');
@@ -51,4 +55,4 @@ function clearSessionCookie(response) {
 	response.setHeader('Set-Cookie', `${cookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
 
-module.exports = { readSession, setSessionCookie, clearSessionCookie };
+module.exports = { cookieName, createSessionToken, readSession, setSessionCookie, clearSessionCookie };

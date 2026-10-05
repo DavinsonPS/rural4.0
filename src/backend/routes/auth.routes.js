@@ -1,57 +1,17 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
-const nodemailer = require('nodemailer');
 const { pool } = require('../db');
 const { setSessionCookie, clearSessionCookie } = require('../session');
+const catalogosRepo = require('../repositories/catalogos.repo');
+const { requireSession } = require('../middlewares/auth');
+const { createAccessToken, sendRecoveryEmail, sendVerificationEmail } = require('../services/correo.service');
 
 const router = express.Router();
-
-function createRecoveryToken() {
-	const rawToken = crypto.randomBytes(32).toString('hex');
-	const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-	return { rawToken, tokenHash };
-}
 
 function createVerificationCode() {
 	const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 	return Array.from(crypto.randomBytes(8), (value) => alphabet[value % alphabet.length]).join('');
-}
-
-function createMailTransporter() {
-	const mailUser = process.env.EMAIL_USER;
-	const mailPassword = process.env.EMAIL_PASS;
-	if (!mailUser || !mailPassword) throw new Error('El servicio de correo no está configurado.');
-	return nodemailer.createTransport({
-		host: process.env.EMAIL_HOST || 'mail.rural40.ml-ware.com',
-		port: Number(process.env.EMAIL_PORT) || 465,
-		secure: String(process.env.EMAIL_SECURE || 'true') === 'true',
-		auth: { user: mailUser, pass: mailPassword },
-		tls: { rejectUnauthorized: false },
-	});
-}
-
-async function sendRecoveryEmail(user, rawToken) {
-	const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/restablecer.html?token=${rawToken}`;
-	const mailUser = process.env.EMAIL_USER;
-	const transporter = createMailTransporter();
-
-	await transporter.sendMail({
-		from: process.env.MAIL_FROM || `"Rural 4.0" <${mailUser}>`,
-		to: user.correo,
-		subject: 'Recuperación de contraseña | Rural 4.0',
-		html: `<p>Hola, ${user.nombres}.</p><p>Recibimos una solicitud para cambiar tu contraseña de Rural 4.0.</p><p><a href="${resetUrl}">Crear una nueva contraseña</a></p><p>Este enlace vence en 30 minutos y solo puede usarse una vez.</p><p>Si no solicitaste este cambio, puedes ignorar este correo.</p>`,
-	});
-}
-
-async function sendVerificationEmail(user, code) {
-	const transporter = createMailTransporter();
-	await transporter.sendMail({
-		from: process.env.MAIL_FROM || `"Rural 4.0" <${process.env.EMAIL_USER}>`,
-		to: user.correo,
-		subject: 'Código de verificación | Rural 4.0',
-		html: `<p>Hola, ${user.nombres}.</p><p>Usa este código para confirmar tu correo y terminar tu registro en Rural 4.0:</p><p style="font-size:24px;font-weight:bold;letter-spacing:6px">${code}</p><p>El código vence en 15 minutos y solo puede usarse una vez.</p><p>Si no solicitaste este registro, puedes ignorar este correo.</p>`,
-	});
 }
 
 router.post('/login', async (request, response) => {
@@ -83,7 +43,7 @@ router.post('/login', async (request, response) => {
 		await pool.query('UPDATE tblh_usuarios SET ultimo_acceso = NOW() WHERE id = ?', [user.id]);
 
 		const role = String(user.rol).toUpperCase();
-		const redirect = role === 'ESTUDIANTE' ? '/estudiante.html' : '/docente.html';
+		const redirect = { ESTUDIANTE: '/estudiante.html', ADMINISTRADOR: '/admin.html' }[role] || '/docente.html';
 		setSessionCookie(response, request, { id: user.id, rol: role });
 		return response.json({
 			user: {
@@ -107,10 +67,15 @@ router.post('/logout', (request, response) => {
 	response.json({ message: 'Sesión cerrada.' });
 });
 
+router.get('/me', requireSession, (request, response) => {
+	const { id, nombres, apellidos, usuario, correo, rol, id_institucion, institucion } = request.user;
+	response.setHeader('Cache-Control', 'no-store');
+	response.json({ id, nombres, apellidos, usuario, correo, rol, id_institucion, institucion });
+});
+
 router.get('/instituciones', async (request, response) => {
 	try {
-		const [rows] = await pool.query('SELECT id, nombre FROM tbld_instituciones WHERE estado = 1 ORDER BY nombre');
-		return response.json(rows);
+		return response.json(await catalogosRepo.listInstitutions());
 	} catch (error) {
 		console.error('Institutions lookup failed:', error.message);
 		return response.status(500).json({ error: 'No fue posible cargar las instituciones.' });
@@ -119,8 +84,7 @@ router.get('/instituciones', async (request, response) => {
 
 router.get('/tipos-documento', async (request, response) => {
 	try {
-		const [rows] = await pool.query('SELECT id, codigo, nombre FROM tbld_tipos_documentos WHERE estado = 1 ORDER BY id');
-		return response.json(rows);
+		return response.json(await catalogosRepo.listDocumentTypes());
 	} catch (error) {
 		console.error('Document types lookup failed:', error.message);
 		return response.status(500).json({ error: 'No fue posible cargar los tipos de documento.' });
@@ -226,7 +190,7 @@ router.post('/forgot-password', async (request, response) => {
 		const user = rows[0];
 		if (!user) return response.json({ message: genericMessage });
 
-		const { rawToken, tokenHash } = createRecoveryToken();
+		const { rawToken, tokenHash } = createAccessToken();
 		await pool.query('DELETE FROM tblh_recuperacion_claves WHERE id_usuario = ?', [user.id]);
 		await pool.query(
 			`INSERT INTO tblh_recuperacion_claves (id_usuario, token_hash, fecha_expiracion)
