@@ -4,6 +4,9 @@
 	"private": true,
 	"description": "Servidor del sistema de monitoreo Rural 4.0",
 	"main": "server.js",
+	"engines": {
+		"node": ">=20"
+	},
 	"scripts": {
 		"start": "node server.js",
 		"dev": "node --env-file=.env.local server.js",
@@ -13,11 +16,14 @@
 		"usuario:crear": "node scripts/crear-docente.js"
 	},
 	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.32.1",
 		"bcryptjs": "^3.0.3",
 		"dotenv": "^16.6.1",
 		"express": "^5.1.0",
 		"multer": "^2.0.2",
 		"mysql2": "^3.14.4",
-		"nodemailer": "^7.0.6"
+		"nodemailer": "^10.1.0",
+		"openai": "^6.49.0",
+		"zod": "^4.6.7"
 	}
 }

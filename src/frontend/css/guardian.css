@@ -1,15 +1,16 @@
-/* Guardián: mascota que acompaña al estudiante (abajo a la izquierda del contenido). */
+/* Guardián: mascota que acompaña al estudiante desde la esquina inferior derecha. */
 
-.guardian { position: fixed; z-index: 25; bottom: 14px; left: calc(210px + 14px); display: flex; align-items: flex-end; gap: 6px; pointer-events: none; }
+.guardian { position: fixed; z-index: 25; right: 14px; bottom: 14px; display: flex; flex-direction: row-reverse; align-items: flex-end; gap: 6px; pointer-events: none; }
+.shell[data-dashboard-view="assistant"] ~ .guardian { display: none; }
 .guardian > * { pointer-events: auto; }
 .guardian-figure { position: relative; width: 104px; height: 120px; padding: 0; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 6px 10px rgb(31 45 26 / 18%)); transition: transform .25s ease; }
 .guardian-figure:hover { transform: translateY(-3px) scale(1.03); }
 .guardian-figure:focus-visible { outline: 3px solid #97c459; outline-offset: 4px; border-radius: 16px; }
 .gd-svg { width: 100%; height: 100%; overflow: visible; }
 
-.guardian-bubble { position: relative; max-width: 290px; margin-bottom: 64px; padding: 12px 14px 10px; border: 1px solid #cbdcaf; border-radius: 14px 14px 14px 4px; background: #fff; box-shadow: 0 12px 30px rgb(31 45 26 / 16%); color: var(--text-primary); font-size: 13px; line-height: 1.45; animation: gd-pop .28s ease-out; }
+.guardian-bubble { position: relative; max-width: 290px; margin-bottom: 64px; padding: 12px 14px 10px; border: 1px solid #cbdcaf; border-radius: 14px 14px 4px 14px; background: #fff; box-shadow: 0 12px 30px rgb(31 45 26 / 16%); color: var(--text-primary); font-size: 13px; line-height: 1.45; animation: gd-pop .28s ease-out; }
 .guardian-bubble[hidden] { display: none; }
-.guardian-bubble::before { content: ''; position: absolute; left: -7px; bottom: 12px; width: 12px; height: 12px; border-left: 1px solid #cbdcaf; border-bottom: 1px solid #cbdcaf; background: #fff; transform: rotate(45deg); }
+.guardian-bubble::before { content: ''; position: absolute; right: -7px; bottom: 12px; width: 12px; height: 12px; border-right: 1px solid #cbdcaf; border-bottom: 1px solid #cbdcaf; background: #fff; transform: rotate(-45deg); }
 .guardian-name { display: block; margin-bottom: 3px; color: #639922; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .guardian-text { padding-right: 16px; }
 .guardian-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
@@ -17,6 +18,18 @@
 .guardian-actions button.is-primary { border-color: #3b6d11; background: #3b6d11; color: #eaf3de; }
 .guardian-close { position: absolute; top: 6px; right: 6px; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 14px; }
 .guardian-close:hover { background: #f1f5ec; color: var(--text-primary); }
+.guardian-bubble:has(.guardian-chat:not([hidden])) { width: min(360px, calc(100vw - 110px)); max-width: 360px; }
+.guardian-chat[hidden] { display: none; }
+.guardian-chat-messages { display: flex; max-height: 250px; flex-direction: column; gap: 7px; overflow-y: auto; padding: 8px 2px; }
+.guardian-chat-message { max-width: 92%; margin: 0; padding: 7px 9px; border-radius: 11px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.guardian-chat-message.is-guardian { align-self: flex-start; background: #f1f5ec; }
+.guardian-chat-message.is-user { align-self: flex-end; background: #e1edcf; }
+.guardian-chat-status { margin: 4px 0; color: var(--text-secondary); font-size: 11px; }
+.guardian-chat-form textarea { box-sizing: border-box; width: 100%; min-height: 56px; resize: vertical; padding: 8px; border: 1px solid var(--border); border-radius: 9px; font: inherit; font-size: 12px; }
+.guardian-chat-controls { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.guardian-chat-controls button { padding: 5px 9px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface-2); color: var(--text-secondary); cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; }
+.guardian-chat-controls button.is-primary { border-color: #3b6d11; background: #3b6d11; color: #eaf3de; }
+.guardian-chat-controls button:disabled { cursor: wait; opacity: .65; }
 
 /* Minimizado: solo una burbujita con la carita */
 .guardian.is-minimized .guardian-figure { width: 56px; height: 64px; }
@@ -69,13 +82,14 @@
 
 /* Espacio para que Guardián no tape lo último de la página */
 body.has-guardian .content { padding-bottom: 150px; }
+.shell[data-dashboard-view="assistant"] .content { padding-bottom: 1rem; }
 
 @media (max-width: 800px) {
-	.guardian { left: calc(64px + 8px); }
+	.guardian { right: 8px; }
 }
 
 @media (max-width: 480px) {
-	.guardian { bottom: 8px; }
+	.guardian { right: 8px; bottom: 8px; }
 	.guardian-figure { width: 72px; height: 84px; }
 	.guardian-bubble { max-width: calc(100vw - 64px - 92px); margin-bottom: 40px; font-size: 12px; }
 	.guardian.is-minimized .guardian-figure { width: 48px; height: 56px; }

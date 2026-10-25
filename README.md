@@ -4,7 +4,7 @@ Aplicación local para el monitoreo de plantas mediante un backend Node.js, una 
 
 ## Requisitos
 
-- Node.js 18 o superior.
+- Node.js 20 o superior.
 - MariaDB 10.5 o superior.
 - npm.
 - PowerShell, Windows Terminal o WSL.
@@ -76,7 +76,7 @@ DEVICE_REGISTRATION_KEY=cambia-esta-clave-local
 APP_URL=http://localhost:3000
 ```
 
-`SESSION_SECRET` es obligatoria: sin ella la aplicación no arranca. La plantilla completa está en `src/backend/.env.example`.
+`SESSION_SECRET` y las variables de conexión a la base de datos son obligatorias para iniciar la aplicación. Configura también `OPENAI_API_KEY` y `MODELO` para habilitar Guardián. La plantilla completa está en `src/backend/.env.example`. MCP (`/mcp`), el agente Guardián (`/api/guardian`) y la página comparten el mismo proceso y puerto. El servidor web inicia sin esperar a la base de datos; mientras MCP o Guardián no estén listos, sus rutas reciben 503 y el backend reintenta la inicialización cada 30 segundos. Consulta `/api/health` para ver el estado de ambos servicios.
 
 Las variables `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_SECURE`, `EMAIL_USER`, `EMAIL_PASS` y `MAIL_FROM` solo son necesarias para probar recuperación de contraseña y verificación por correo. No publiques el archivo `.env` ni sus contraseñas.
 
@@ -102,6 +102,8 @@ El backend sirve la API y el frontend en el mismo puerto. Abre:
 - Aplicación: <http://localhost:3000>
 - Salud del servidor: <http://localhost:3000/api/health>
 - Salud de la base de datos: <http://localhost:3000/api/health/db>
+- MCP (clientes Streamable HTTP): <http://localhost:3000/mcp> (requiere una sesión activa de estudiante o docente)
+- API del agente Guardián: <http://localhost:3000/api/guardian> (sesión activa de estudiante)
 
 Para detenerlo, presiona `Ctrl+C`.
 
