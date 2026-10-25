@@ -19,6 +19,8 @@ $frontend = Join-Path $root 'src\frontend'
 
 $backendFiles = @('server.js', 'db.js', 'session.js', 'package.json', 'package-lock.json')
 $backendFolders = @('config', 'lib', 'middlewares', 'policies', 'services', 'repositories', 'routes', 'scripts')
+$mcpFiles = @('server.js', 'tools.js', 'time.js')
+$agentFiles = @('src\guardian.routes.js', 'src\guardian.service.js')
 
 $outputFolder = Join-Path $root 'despliegue'
 New-Item -ItemType Directory -Force -Path $outputFolder | Out-Null
@@ -34,6 +36,12 @@ foreach ($folder in $backendFolders) {
 		$relative = $_.FullName.Substring($backend.Length + 1).Replace('\', '/')
 		$entries.Add(@{ Source = $_.FullName; Entry = "src/backend/$relative" })
 	}
+}
+foreach ($file in $mcpFiles) {
+	$entries.Add(@{ Source = (Join-Path $root "MCP\$file"); Entry = "MCP/$file" })
+}
+foreach ($file in $agentFiles) {
+	$entries.Add(@{ Source = (Join-Path $root "AGENTE\$file"); Entry = "AGENTE/$($file.Replace('\', '/'))" })
 }
 Get-ChildItem -Path $frontend -Recurse -File | ForEach-Object {
 	$relative = $_.FullName.Substring($frontend.Length + 1).Replace('\', '/')

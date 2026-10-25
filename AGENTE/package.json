@@ -1,0 +1,20 @@
+{
+	"name": "rural40-guardian-agent",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Agente educativo Guardián para estudiantes de rural4.0",
+	"scripts": {
+		"test": "node --test"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.32.1",
+		"dotenv": "^16.6.1",
+		"express": "^5.1.0",
+		"mysql2": "^3.14.4",
+		"openai": "^6.49.0",
+		"zod": "^4.6.7"
+	}
+}

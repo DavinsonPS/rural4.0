@@ -29,7 +29,6 @@
 				<button class="nav-item" type="button" data-view="plant"><i class="ti ti-plant" aria-hidden="true"></i>Mi planta</button>
 				<button class="nav-item" type="button" data-view="missions"><i class="ti ti-trophy" aria-hidden="true"></i>Misiones</button>
 				<button class="nav-item" type="button" data-view="quizzes"><i class="ti ti-help-hexagon" aria-hidden="true"></i>Cuestionarios</button>
-				<button class="nav-item" type="button" data-view="experiments"><i class="ti ti-flask" aria-hidden="true"></i>Experimentos</button>
 				<div class="nav-section">Datos</div>
 				<button class="nav-item" type="button" data-view="records"><i class="ti ti-chart-line" aria-hidden="true"></i>Mis registros</button>
 				<button class="nav-item" type="button" data-view="photos"><i class="ti ti-camera" aria-hidden="true"></i>Fotos de avance</button>
@@ -359,9 +358,6 @@
 					<div class="view-heading"><span class="eyebrow">Pon a prueba lo que aprendiste</span><h2>Cuestionarios</h2><p>Responde los cuestionarios de tu docente. Verás tu puntaje al enviar y las respuestas correctas cuando cierre.</p></div>
 					<div id="student-quizzes"></div>
 				</section>
-				<section class="dashboard-view-panel" data-dashboard-view="experiments" hidden>
-					<div class="view-heading"><span class="eyebrow">Aprender haciendo</span><h2>Experimentos</h2><p>Registra pequeñas pruebas y compara cómo responde tu planta.</p></div><article class="card empty-view-card"><i class="ti ti-flask" aria-hidden="true"></i><h3>Aún no tienes experimentos</h3><p class="card-help">Crea una hipótesis desde tu proyecto y registra qué cambió en tu planta.</p><button class="save-btn compact-action" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Nuevo experimento</button></article>
-				</section>
 				<section class="dashboard-view-panel" data-dashboard-view="records" hidden>
 					<div class="view-heading"><span class="eyebrow">Datos de tu proyecto</span><h2>Mis registros</h2><p>Una bitácora por día para conservar tus observaciones y cuidados.</p></div><div id="daily-logs-list" class="daily-logs-list"><article class="card empty-view-card"><i class="ti ti-chart-line" aria-hidden="true"></i><h3>Sin registros todavía</h3><p class="card-help">Guarda tu primera bitácora desde “Mi planta”.</p></article></div>
 				</section>
@@ -372,7 +368,24 @@
 					<div id="photo-album" class="photo-album"><article class="card empty-view-card"><i class="ti ti-camera-plus" aria-hidden="true"></i><h3>Agrega tu primera foto</h3><p class="card-help">Puedes subirla desde la bitácora diaria en “Mi planta”.</p></article></div>
 				</section>
 				<section class="dashboard-view-panel" data-dashboard-view="assistant" hidden>
-					<div class="view-heading"><span class="eyebrow">Orientación para tu proyecto</span><h2>Asistente IA</h2><p>Encuentra ideas para observar, preguntar y aprender de tu planta.</p></div><article class="card assistant-card"><div class="assistant-icon"><i class="ti ti-robot" aria-hidden="true"></i></div><h3>¿Qué quieres explorar?</h3><p class="card-help">El asistente estará disponible cuando conectemos tus observaciones con recomendaciones para tu proyecto.</p><div class="suggestion-list"><button type="button">¿Cómo sé si mi planta necesita agua?</button><button type="button">¿Qué puedo observar esta semana?</button><button type="button">¿Cómo comparo mis registros?</button></div></article>
+					<div class="view-heading"><span class="eyebrow">Orientación para tu proyecto</span><h2>Asistente IA</h2><p>Conversa con Guardián y consulta tus conversaciones anteriores.</p></div>
+					<div class="assistant-workspace">
+						<aside class="assistant-history card" aria-label="Historial de conversaciones">
+							<div class="assistant-history-heading"><h3>Conversaciones</h3><button class="assistant-new-chat" id="assistant-new-chat" type="button"><i class="ti ti-plus" aria-hidden="true"></i>Nuevo chat</button></div>
+							<div class="assistant-history-list" id="assistant-history-list" aria-live="polite"><p class="assistant-history-status">Selecciona un proyecto para ver tus conversaciones.</p></div>
+						</aside>
+						<section class="assistant-chat card" aria-label="Chat con Guardián">
+							<div class="assistant-chat-messages" id="assistant-chat-messages" role="log" aria-live="polite">
+								<div class="assistant-welcome" id="assistant-welcome"><div class="assistant-icon"><i class="ti ti-robot" aria-hidden="true"></i></div><h3>¿Qué quieres explorar?</h3><p>Pregúntame sobre tu planta, tus observaciones o los datos de tu proyecto.</p><div class="suggestion-list"><button type="button">¿Cómo sé si mi planta necesita agua?</button><button type="button">¿Qué puedo observar esta semana?</button><button type="button">¿Cómo comparo mis registros?</button></div></div>
+							</div>
+							<p class="assistant-chat-status" id="assistant-chat-status" aria-live="polite">Elige una conversación o escribe tu pregunta.</p>
+							<form class="assistant-chat-form" id="assistant-chat-form">
+								<label class="sr-only" for="assistant-chat-input">Escribe tu pregunta</label>
+								<textarea id="assistant-chat-input" maxlength="2000" rows="2" placeholder="Pregúntale algo a Guardián…" required></textarea>
+								<div class="assistant-chat-controls"><span>Enter envía · Shift+Enter agrega una línea</span><button class="is-primary" id="assistant-send-button" type="submit"><i class="ti ti-send" aria-hidden="true"></i>Enviar</button></div>
+							</form>
+						</section>
+					</div>
 				</section>
 			</div>
 		</section>
