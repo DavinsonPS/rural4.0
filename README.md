@@ -67,14 +67,18 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=rural40_db
 DB_USER=BD_SYSTEM_RURAL40
-DB_PASSWORD=la_contrasena_definida_para_el_usuario
+DB_PASSWORD=REEMPLAZAR_CON_LA_CLAVE_CONFIGURADA_EN_MARIADB
 DB_CONNECTION_LIMIT=10
 
-SESSION_SECRET=cambia-este-secreto-local
-DEVICE_PROVISIONING_KEY=cambia-esta-clave-local
-DEVICE_REGISTRATION_KEY=cambia-esta-clave-local
+SESSION_SECRET=REEMPLAZAR_CON_UN_SECRETO_ALEATORIO
+DEVICE_PROVISIONING_KEY=REEMPLAZAR_CON_LA_CLAVE_DE_APROVISIONAMIENTO
+DEVICE_REGISTRATION_KEY=REEMPLAZAR_CON_LA_CLAVE_DE_REGISTRO
 APP_URL=http://localhost:3000
 ```
+
+Los valores `REEMPLAZAR_...` son marcadores de ejemplo, no credenciales. Genera o configura
+valores propios en el archivo `.env` local o en el gestor de secretos del servidor; nunca pegues
+credenciales reales en el README ni en otros documentos versionados.
 
 `SESSION_SECRET` y las variables de conexión a la base de datos son obligatorias para iniciar la aplicación. Configura también `OPENAI_API_KEY` y `MODELO` para habilitar Guardián. La plantilla completa está en `src/backend/.env.example`. MCP (`/mcp`), el agente Guardián (`/api/guardian`) y la página comparten el mismo proceso y puerto. El servidor web inicia sin esperar a la base de datos; mientras MCP o Guardián no estén listos, sus rutas reciben 503 y el backend reintenta la inicialización cada 30 segundos. Consulta `/api/health` para ver el estado de ambos servicios.
 
@@ -173,22 +177,36 @@ Revisa las variables SMTP. El servidor puede iniciar sin ellas, pero las funcion
 ## Estructura principal
 
 ```text
-Desarrollo/
-├── db/                    Esquema base original (ver db/README.md para las migraciones)
-├── esp32/                 Firmware del ESP32 de sensores (Arduino)
-├── esp32-camara/          OBSOLETO: sketch antiguo de la cámara (ver esp32-camara/OBSOLETO.md)
+.
+├── AGENTE/                Servicio del agente educativo Guardián y sus conversaciones
+│   ├── src/               Rutas HTTP y servicio que conecta OpenAI con herramientas MCP
+│   └── test/              Pruebas del servicio del agente
+├── MCP/                   Servidor Model Context Protocol y herramientas de consulta
+│   └── test/              Pruebas del servidor, herramientas y autenticación
+├── db/                    Esquema y documentación de la base de datos
+├── esp32/                 Sketch Arduino del ESP32 de sensores y configuración Wokwi
+├── esp32-camara/          Sketch antiguo de cámara (obsoleto; ver OBSOLETO.md)
 ├── firmware/
 │   └── esp32-camara/      Firmware vigente de la ESP32-CAM (PlatformIO)
-├── local/                 Entorno de pruebas locales: Docker (MariaDB), simulador y pruebas E2E
-├── scripts/               Empaquetado del despliegue para Plesk
+├── local/                 Docker, simulador y pruebas E2E para desarrollo local
+├── scripts/               Herramientas de empaquetado para despliegue
 └── src/
-    ├── backend/           API Express en capas
-    │   ├── routes/ middlewares/ policies/ services/ repositories/
-    │   ├── config/ lib/   Catálogos, umbrales y utilidades
-    │   ├── migraciones/   Cambios de base de datos (se importan a mano)
-    │   └── tests/         Pruebas unitarias (npm test)
-    └── frontend/          HTML, CSS y JS por rol: estudiante, docente y administrador
+    ├── backend/           Aplicación Express: API, frontend estático y servicios
+    │   ├── routes/        Rutas HTTP y API
+    │   ├── middlewares/   Autenticación, errores y acceso de dispositivos
+    │   ├── policies/      Reglas de acceso a proyectos
+    │   ├── services/      Lógica de negocio
+    │   ├── repositories/  Consultas y persistencia MySQL
+    │   ├── migraciones/   Migraciones de la base de datos
+    │   └── tests/         Pruebas automatizadas del backend (npm test)
+    └── frontend/          HTML, CSS y JavaScript de estudiante, docente y administrador
+        ├── css/           Estilos por pantalla y funcionalidad
+        └── js/            Dashboard, módulos por rol y utilidades compartidas
 ```
+
+El backend aloja `/mcp` y `/api/guardian` en el mismo proceso. `MCP/` contiene el servidor
+MCP y sus herramientas de consulta; `AGENTE/` contiene el agente Guardián que las utiliza
+para responder en el chat del estudiante.
 
 Roles: **estudiante** (proyectos, monitoreo, bitácoras, cuestionarios), **docente** (semáforo de sus
 estudiantes, fichas de proyecto, cuestionarios con banco de preguntas) y **administrador** (usuarios
