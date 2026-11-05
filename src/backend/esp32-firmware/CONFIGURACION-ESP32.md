@@ -117,6 +117,14 @@ La URL de Rural 4.0 ya está configurada en el firmware y no se solicita en el p
 
 El portal solo solicita el nombre y la contraseña de la red Wi-Fi. La clave del dispositivo se obtiene automáticamente durante la provisión y se guarda en la placa; no es necesario ingresarla. Si la placa conserva credenciales Wi-Fi anteriores y no crea el portal, borra la memoria flash antes de cargar el firmware o restablece su configuración Wi-Fi.
 
+En el firmware de sensores, el LED azul integrado parpadea mientras no haya conexión Wi-Fi y se apaga al conectarse. Si pierde la conexión, vuelve a parpadear.
+
+Si el Wi-Fi se desconecta mientras el ESP32 está funcionando, reintenta conectarse a la red guardada automáticamente y no abre el portal. El portal `Rural40-Setup` se abre al arrancar si no puede conectarse a esa red.
+
+La versión de firmware se registra en la tabla de dispositivos al provisionar el ESP32. En cada solicitud autenticada, el dispositivo informa su versión actual. Después de iniciar o actualizarse por OTA, también la reporta explícitamente con `POST /api/dispositivos/version`; el monitor serial confirma si el servidor guardó la versión.
+
+Al iniciar, si el ESP32 se conecta a Wi-Fi, consulta NTP y actualiza el RTC con la hora de Colombia (UTC-5). Si no puede obtener la hora de internet, mantiene la hora del RTC que ya tenía; no la reemplaza por la fecha de compilación. La primera sincronización requiere acceso a internet.
+
 Para comprobar el arranque, abre el monitor serial a `115200` baudios antes de reiniciar o reconectar el USB.
 
 El monitor serial debe mostrar mensajes similares a:
@@ -173,30 +181,34 @@ En el backend, la API para firmware OTA queda en:
 
 ## 7. Flujo recomendado para el proyecto
 
-1. Compila el firmware final.
-2. Guarda el binario en la ruta del servidor: `rural40.ml-ware.com/httpdocs/src/backend/esp32-firmware/firmware.bin`.
-3. Ejecuta la generación del manifiesto desde la raíz del proyecto del servidor:
+Los binarios del ESP32 se excluyen de Git porque pueden contener claves compiladas. Genera y
+prepara los archivos localmente siguiendo `src/backend/esp32-firmware/README.md`; después súbelos
+manualmente al servidor. El paquete general de despliegue no incluye `esp32-firmware/`.
+
+1. Compila el firmware final y copia los binarios de aplicación, instalación inicial y componentes
+   a `src/backend/esp32-firmware/` y `src/backend/esp32-firmware/first-install/`.
+2. Ejecuta la generación del manifiesto OTA desde la raíz del proyecto del servidor:
 
 ```bash
 cd /home/usuario/public_html/rural40.ml-ware.com/httpdocs/src/backend
-npm run firmware:manifest -- 1.0.1
+npm run firmware:manifest -- 1.0.7
 ```
 
-4. Verifica que `manifest.json` tenga:
+3. Verifica que `manifest.json` tenga la versión compilada, el SHA-256 y el tamaño del `firmware.bin` subido. El comando también sincroniza la versión de `first-install/manifest.json`.
 
 ```json
 {
-   "version": "1.0.1",
+   "version": "1.0.6",
   "sha256": "HASH_SHA256_DEL_FIRMWARE",
   "tamano_bytes": 123456,
   "obligatoria": false
 }
 ```
 
-5. Para primera instalación, publica también todos los archivos de `first-install/` sin cambiar sus nombres.
-6. Flashea `first-flash.bin` por USB en `0x0`, o carga los cuatro componentes en sus offsets documentados.
-7. El ESP32 intenta conectarse a la red y luego se registra con la API.
-8. El sistema puede actualizar firmware por OTA cuando sea necesario.
+4. Publica también todos los archivos de `first-install/` sin cambiar sus nombres.
+5. Flashea `first-flash.bin` por USB en `0x0`, o carga los cuatro componentes en sus offsets documentados.
+6. El ESP32 intenta conectarse a la red y luego se registra con la API.
+7. El sistema puede actualizar firmware por OTA cuando sea necesario.
 
 ---
 

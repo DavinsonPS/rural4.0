@@ -30,3 +30,12 @@ src/backend/esp32-firmware/camara/first-install/
 
 # Configuración local del editor/asistente
 .claude/
+skills-lock.json
+.playwright-mcp/
+!local
+
+# Binarios compilados del ESP32: pueden incluir claves de provisión del dispositivo.
+esp32/sketch/build/
+firmware/esp32-camara/.pio/
+src/backend/esp32-firmware/*.bin
+src/backend/esp32-firmware/**/*.bin

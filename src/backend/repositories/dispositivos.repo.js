@@ -4,7 +4,7 @@ const { pool } = require('../db');
 // sensores o de cámara (si lo hay).
 async function findByApiKeyHash(keyHash) {
 	const [rows] = await pool.query(
-		`SELECT d.id, d.codigo_interno, d.modelo,
+		`SELECT d.id, d.codigo_interno, d.modelo, d.version_firmware,
 				sensor_project.id AS id_proyecto_sensor,
 				camera_project.id AS id_proyecto_camara,
 				COALESCE(sensor_project.id, camera_project.id) AS id_proyecto,
@@ -87,6 +87,13 @@ async function listPending(windowHours) {
 
 async function touchContact(deviceId) {
 	await pool.query('UPDATE tbld_dispositivos SET fecha_ultimo_contacto = CURRENT_TIMESTAMP WHERE id = ?', [deviceId]);
+}
+
+async function updateFirmwareVersion(deviceId, version) {
+	await pool.query(
+		'UPDATE tbld_dispositivos SET version_firmware = ? WHERE id = ? AND (version_firmware IS NULL OR version_firmware <> ?)',
+		[version, deviceId, version],
+	);
 }
 
 async function findForLinking(connection, codigoInterno, codigoVinculacion) {
@@ -179,6 +186,7 @@ module.exports = {
 	updateIdentity,
 	listPending,
 	touchContact,
+	updateFirmwareVersion,
 	findForLinking,
 	lockProjectSlots,
 	findOtherAssignment,

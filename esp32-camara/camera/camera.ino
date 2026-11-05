@@ -28,9 +28,9 @@
 #define PCLK_GPIO_NUM 22
 
 const char *PENDING_PHOTO = "/pending.jpg";
-const char *DEFAULT_API_URL = "https://rural40.ml-ware.com";
+const char *DEFAULT_API_URL = "https://ruta-pagina.com";
 const char *SIMULATION_WIFI = "Wokwi-GUEST";
-const char *DEFAULT_DEVICE_KEY = "160b61a64e0628f19a44e7841b02824ded012bdc77a2b649eb4e2433a5bd966b";
+const char *DEFAULT_DEVICE_KEY = "KEY-DEVICES-ESP32-CAMERA";
 Preferences preferences;
 String apiUrl;
 String deviceKey;

@@ -12,14 +12,14 @@ services:
     image: mariadb:11.4
     container_name: rural40-db-local
     environment:
-      MARIADB_ROOT_PASSWORD: root-local
-      MARIADB_DATABASE: rural40_db
-      MARIADB_USER: rural40_local
-      MARIADB_PASSWORD: rural40_local
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Configura MARIADB_ROOT_PASSWORD en local/.env}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-rural40_db}
+      MARIADB_USER: ${MARIADB_USER:?Configura MARIADB_USER en local/.env}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?Configura MARIADB_PASSWORD en local/.env}
       TZ: America/Bogota
     command: ["--default-time-zone=-05:00"]
     ports:
-      - "3307:3306"
+      - "127.0.0.1:${DB_LOCAL_PORT:-3307}:3306"
     volumes:
       - ${RURAL_DUMP:-../rural40_db.sql}:/docker-entrypoint-initdb.d/00_volcado.sql:ro
       - ../src/backend/migraciones/001_base.sql:/docker-entrypoint-initdb.d/01_base.sql:ro

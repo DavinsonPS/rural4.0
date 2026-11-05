@@ -10,8 +10,13 @@ if (!/^\d+\.\d+\.\d+$/.test(version || '')) {
 
 const firmwarePath = path.join(__dirname, '..', 'esp32-firmware', 'firmware.bin');
 const manifestPath = path.join(__dirname, '..', 'esp32-firmware', 'manifest.json');
+const firstInstallManifestPath = path.join(__dirname, '..', 'esp32-firmware', 'first-install', 'manifest.json');
 if (!fs.existsSync(firmwarePath)) {
 	console.error(`No existe ${firmwarePath}`);
+	process.exit(1);
+}
+if (!fs.existsSync(firstInstallManifestPath)) {
+	console.error(`No existe ${firstInstallManifestPath}`);
 	process.exit(1);
 }
 
@@ -23,4 +28,7 @@ const manifest = {
 	obligatoria: false,
 };
 fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+const firstInstallManifest = JSON.parse(fs.readFileSync(firstInstallManifestPath, 'utf8'));
+firstInstallManifest.version = version;
+fs.writeFileSync(firstInstallManifestPath, `${JSON.stringify(firstInstallManifest, null, 2)}\n`, 'utf8');
 console.log(`Manifest actualizado: ${version}, ${firmware.length} bytes, ${manifest.sha256}`);

@@ -2,7 +2,7 @@ const express = require('express');
 const dispositivosService = require('../services/dispositivos.service');
 const { requireSessionOrRegistrationKey } = require('../middlewares/auth');
 const { requireDevice } = require('../middlewares/device-auth');
-const { UnauthorizedError } = require('../lib/errors');
+const { UnauthorizedError, ValidationError } = require('../lib/errors');
 const { handler } = require('../lib/http');
 
 const router = express.Router();
@@ -22,6 +22,12 @@ router.post('/provisionar', requireProvisioningKey, handler('No fue posible prov
 
 router.get('/configuracion', requireDevice(), handler('No fue posible consultar la configuración.', async (request, response) => {
 	response.json(dispositivosService.configurationFor(request.device));
+}));
+
+router.post('/version', requireDevice(), handler('No fue posible registrar la versión del firmware.', async (request, response) => {
+	const version = String(request.get('x-firmware-version') || '').trim();
+	if (!/^\d+\.\d+\.\d+$/.test(version)) throw new ValidationError('Versión de firmware inválida.');
+	response.json({ version_firmware: request.device.version_firmware });
 }));
 
 // --- Rutas del dashboard: sesión del usuario (o X-Registration-Key para herramientas internas) ---

@@ -1,0 +1,18 @@
+/* Rural 4.0 auth design tokens. Keep auth surfaces aligned across entry, recovery and registration views. */
+:root {
+	--auth-surface: #fbfcf9;
+	--auth-ink: #1f2d1a;
+	--auth-muted: #687265;
+	--auth-subtle: #929c8b;
+	--auth-line: #b9c8ad;
+	--auth-green-dark: #173404;
+	--auth-green-deep: #27500a;
+	--auth-green: #3b6d11;
+	--auth-green-light: #97c459;
+	--auth-green-pale: #eaf3de;
+	--auth-danger: #a33f32;
+	--auth-radius: 10px;
+	--auth-focus: 3px solid rgb(151 196 89 / 45%);
+	--auth-display: "Space Grotesk", sans-serif;
+	--auth-body: "DM Sans", sans-serif;
+}

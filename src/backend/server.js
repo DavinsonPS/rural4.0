@@ -26,6 +26,19 @@ const { createGuardianService } = require('../../AGENTE/src/guardian.service');
 
 const app = express();
 const port = Number(process.env.PORT);
+const requireHttps = String(process.env.REQUIRE_HTTPS || (process.env.NODE_ENV === 'production' ? 'true' : 'false')).toLowerCase() === 'true';
+const trustProxy = Number.isFinite(Number(process.env.TRUST_PROXY)) ? Number(process.env.TRUST_PROXY) : false;
+app.set('trust proxy', trustProxy);
+
+function requireHttpsTransport(request, response, next) {
+	if (!requireHttps || request.secure) return next();
+	if (request.path === '/api/health' || request.path === '/api/health/db') return next();
+	if (request.method === 'GET' || request.method === 'HEAD') {
+		const host = request.get('host');
+		return response.redirect(308, `https://${host}${request.originalUrl}`);
+	}
+	return response.status(426).json({ error: 'Esta conexión requiere HTTPS.' });
+}
 const frontendPath = path.join(__dirname, '..', 'frontend');
 const mcpServer = createMcpHttpServer({
 	db: pool,
@@ -96,6 +109,7 @@ function requireGuardianReady(request, response, next) {
 }
 
 app.disable('x-powered-by');
+app.use(requireHttpsTransport);
 app.use(express.json());
 app.use('/mcp', requireSession, requireRole('ESTUDIANTE', 'DOCENTE'), requireMcpReady, mcpServer.handleMcpRequest);
 app.use('/api/dispositivos', deviceRoutes);

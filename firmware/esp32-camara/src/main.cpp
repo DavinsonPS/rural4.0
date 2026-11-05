@@ -300,6 +300,7 @@ void checkConfiguration() {
   WiFiClientSecure secureClient;
   beginRequest(http, secureClient, apiUrl + "/api/dispositivos/configuracion");
   http.addHeader("X-Device-Key", deviceKey);
+  http.addHeader("X-Firmware-Version", RURAL_FIRMWARE_VERSION);
   int status = http.GET();
   if (status == 200) {
     invalidKeyResponses = 0;
@@ -499,6 +500,7 @@ void checkForFirmwareUpdate() {
   WiFiClientSecure manifestClient;
   beginRequest(manifestHttp, manifestClient, apiUrl + "/api/firmware/latest");
   manifestHttp.addHeader("X-Device-Key", deviceKey);
+  manifestHttp.addHeader("X-Firmware-Version", RURAL_FIRMWARE_VERSION);
   int status = manifestHttp.GET();
   if (status != 200) {
     if (status != 204) Serial.printf("OTA manifiesto: HTTP %d\n", status);
@@ -517,6 +519,7 @@ void checkForFirmwareUpdate() {
   WiFiClientSecure firmwareClient;
   beginRequest(firmwareHttp, firmwareClient, apiUrl + String(downloadPath));
   firmwareHttp.addHeader("X-Device-Key", deviceKey);
+  firmwareHttp.addHeader("X-Firmware-Version", RURAL_FIRMWARE_VERSION);
   if (firmwareHttp.GET() != 200) {
     firmwareHttp.end();
     return;

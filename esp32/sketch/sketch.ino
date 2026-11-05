@@ -12,6 +12,7 @@
 #include <SD.h>
 #include <ArduinoJson.h>
 #include <Update.h>
+#include <time.h>
 
 #define DHT_PIN 15
 #define SOIL_PIN 34
@@ -54,10 +55,10 @@ bool initializeLightSensor() {
 
 extern Adafruit_NeoPixel matrix;
 
-const char *DEFAULT_API_URL = "https://rural40.ml-ware.com";
+const char *DEFAULT_API_URL = "https://url-del-servidor.com";
 // Debe coincidir con DEVICE_PROVISIONING_KEY del backend.
 // No es la api_key operativa del dispositivo.
-const char *DEFAULT_PROVISIONING_KEY = "Rural-pr0vision1ng/k3y";
+const char *DEFAULT_PROVISIONING_KEY = "key-de-provisionamiento-del-dispositivo";
 const char *DEFAULT_DEVICE_KEY = "";
 const char *READING_QUEUE = "/readings.queue";
 DHT dht(DHT_PIN, DHT11);
@@ -69,12 +70,33 @@ String deviceKey;
 
 bool sdReady = false;
 bool lightReady = false;
+bool rtcReady = false;
 unsigned long lastReading = 0;
 unsigned long lastConfigurationCheck = 0;
 unsigned long lastOtaCheck = 0;
-const char *FIRMWARE_VERSION = "1.0.1";
+const char *FIRMWARE_VERSION = "1.0.6";
 
 bool provisionDevice();
+
+void addDeviceHeaders(HTTPClient &http) {
+  http.addHeader("X-Device-Key", deviceKey);
+  http.addHeader("X-Firmware-Version", FIRMWARE_VERSION);
+}
+
+void wifiStatusLedTask(void *parameter) {
+  bool ledOn = false;
+  while (true) {
+    if (WiFi.status() == WL_CONNECTED) {
+      digitalWrite(LED_PIN, LOW);
+      ledOn = false;
+      vTaskDelay(pdMS_TO_TICKS(250));
+      continue;
+    }
+    ledOn = !ledOn;
+    digitalWrite(LED_PIN, ledOn ? HIGH : LOW);
+    vTaskDelay(pdMS_TO_TICKS(500));
+  }
+}
 
 uint32_t ledColorFromName(const char *name) {
   if (strcmp(name, "verde") == 0) return matrix.Color(0, 255, 0);
@@ -96,7 +118,7 @@ void applyRemoteConfiguration() {
   } else {
     http.begin(endpoint);
   }
-  http.addHeader("X-Device-Key", deviceKey);
+  addDeviceHeaders(http);
   int status = http.GET();
   if (status == 200) {
     DynamicJsonDocument document(256);
@@ -122,6 +144,38 @@ void applyRemoteConfiguration() {
   http.end();
 }
 
+void reportFirmwareVersion() {
+  if (WiFi.status() != WL_CONNECTED || apiUrl.length() == 0 || deviceKey.length() == 0) {
+    Serial.println("No se pudo reportar la versión: dispositivo sin Wi-Fi o API key.");
+    return;
+  }
+
+  HTTPClient http;
+  String endpoint = apiUrl + "/api/dispositivos/version";
+  WiFiClientSecure secureClient;
+  if (apiUrl.startsWith("https://")) {
+    secureClient.setInsecure();
+    http.begin(secureClient, endpoint);
+  } else {
+    http.begin(endpoint);
+  }
+  addDeviceHeaders(http);
+  int status = http.POST("");
+  if (status == 200) {
+    DynamicJsonDocument response(128);
+    DeserializationError error = deserializeJson(response, http.getString());
+    const char *reportedVersion = response["version_firmware"] | "";
+    if (!error && strcmp(reportedVersion, FIRMWARE_VERSION) == 0) {
+      Serial.printf("Version de firmware registrada en el servidor: %s\n", FIRMWARE_VERSION);
+    } else {
+      Serial.println("El servidor no confirmo la version de firmware.");
+    }
+  } else {
+    Serial.printf("Error al reportar version de firmware: HTTP %d\n", status);
+  }
+  http.end();
+}
+
 void configureConnection() {
   preferences.begin("rural40", false);
   apiUrl = DEFAULT_API_URL;
@@ -130,6 +184,7 @@ void configureConnection() {
   manager.setConnectTimeout(20);
   manager.setConfigPortalTimeout(300);
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
   Serial.println("Conectando a Wi-Fi guardado o abriendo Rural40-Setup...");
   if (WiFi.status() != WL_CONNECTED && !manager.autoConnect("Rural40-Setup")) {
     Serial.println("No fue posible configurar Wi-Fi. Reinicia para intentarlo de nuevo.");
@@ -137,6 +192,33 @@ void configureConnection() {
   }
   Serial.print("Wi-Fi conectado. IP: ");
   Serial.println(WiFi.localIP());
+}
+
+bool synchronizeRtcFromNetwork() {
+  if (!rtcReady || WiFi.status() != WL_CONNECTED) {
+    Serial.println("Sin Wi-Fi o RTC: se conserva la hora local.");
+    return false;
+  }
+
+  Serial.println("Sincronizando hora con NTP (Colombia, UTC-5)...");
+  configTime(-5 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+  struct tm networkTime;
+  if (!getLocalTime(&networkTime, 15000) || networkTime.tm_year + 1900 < 2024) {
+    Serial.println("No se pudo obtener una hora NTP válida; se conserva la hora del RTC.");
+    return false;
+  }
+
+  rtc.adjust(DateTime(
+    networkTime.tm_year + 1900,
+    networkTime.tm_mon + 1,
+    networkTime.tm_mday,
+    networkTime.tm_hour,
+    networkTime.tm_min,
+    networkTime.tm_sec
+  ));
+  Serial.print("RTC actualizado desde NTP: ");
+  Serial.println(dateTimeText(rtc.now()));
+  return true;
 }
 
 bool provisionDevice() {
@@ -158,7 +240,7 @@ bool provisionDevice() {
   }
   http.addHeader("Content-Type", "application/json");
   http.addHeader("X-Provisioning-Key", DEFAULT_PROVISIONING_KEY);
-  String payload = "{\"codigo_interno\":\"" + internalCode + "\",\"mac_address\":\"" + macAddress + "\",\"serial\":\"" + serial + "\",\"modelo\":\"ESP32\"}";
+  String payload = "{\"codigo_interno\":\"" + internalCode + "\",\"mac_address\":\"" + macAddress + "\",\"serial\":\"" + serial + "\",\"modelo\":\"ESP32\",\"version_firmware\":\"" + String(FIRMWARE_VERSION) + "\"}";
   int status = http.POST(payload);
   if (status != 200 && status != 201) {
     Serial.printf("API provision: HTTP %d\n", status);
@@ -201,7 +283,7 @@ void checkForFirmwareUpdate() {
   } else {
     manifestHttp.begin(manifestEndpoint);
   }
-  manifestHttp.addHeader("X-Device-Key", deviceKey);
+  addDeviceHeaders(manifestHttp);
   int status = manifestHttp.GET();
   if (status == 204) {
     manifestHttp.end();
@@ -233,7 +315,7 @@ void checkForFirmwareUpdate() {
   } else {
     firmwareHttp.begin(firmwareUrl);
   }
-  firmwareHttp.addHeader("X-Device-Key", deviceKey);
+  addDeviceHeaders(firmwareHttp);
   int downloadStatus = firmwareHttp.GET();
   if (downloadStatus != 200) {
     Serial.printf("OTA descarga: HTTP %d\n", downloadStatus);
@@ -280,7 +362,7 @@ int postReading(const String &payload) {
     http.begin(endpoint);
   }
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-Device-Key", deviceKey);
+  addDeviceHeaders(http);
   int status = http.POST(payload);
   Serial.printf("API lectura: HTTP %d\n", status);
   http.end();
@@ -338,13 +420,13 @@ bool readSensors(float &temperature, float &humidity, int &soil, float &lightLux
     temperature = dht.readTemperature();
     humidity = dht.readHumidity();
     bool validDhtReading = !isnan(temperature) && !isnan(humidity) &&
-                 temperature >= 0.0f && temperature <= 50.0f &&
-                           humidity >= 0.0f && humidity <= 100.0f;
+                           temperature >= 0.0f && temperature <= 50.0f &&
+                           humidity >= 20.0f && humidity <= 90.0f;
     if (validDhtReading) {
       dhtReady = true;
       break;
     }
-    delay(1500);
+    delay(2100);
   }
   if (!dhtReady) {
     temperature = 0.0f;
@@ -352,10 +434,17 @@ bool readSensors(float &temperature, float &humidity, int &soil, float &lightLux
     Serial.println("DHT11 no disponible: se enviaran sensores en cero.");
   }
 
-  int soilRaw = analogRead(SOIL_PIN);
+  analogRead(SOIL_PIN);
+  uint32_t soilTotal = 0;
+  for (int sample = 0; sample < 5; sample++) {
+    soilTotal += analogRead(SOIL_PIN);
+    delay(10);
+  }
+  int soilRaw = soilTotal / 5;
   if (soilRaw > 0 && soilRaw < 4095) {
     soil = constrain(map(soilRaw, 4095, 0, 0, 100), 0, 100);
   }
+  Serial.printf("Humedad suelo ADC: %d -> %d%%\n", soilRaw, soil);
 
   if (lightReady) {
     float measuredLight = lightMeter.readLightLevel();
@@ -374,7 +463,8 @@ void takeReading() {
   if (!isfinite(humidity)) humidity = 0.0f;
   if (!isfinite(lightLux) || lightLux < 0.0f) lightLux = 0.0f;
   StaticJsonDocument<256> reading;
-  reading["fecha_lectura"] = dateTimeText(rtc.now());
+  DateTime readingTime = rtcReady ? rtc.now() : DateTime(F(__DATE__), F(__TIME__));
+  reading["fecha_lectura"] = dateTimeText(readingTime);
   reading["temperatura_c"] = isfinite(temperature) ? temperature : 0.0f;
   reading["humedad_ambiente_pct"] = isfinite(humidity) ? humidity : 0.0f;
   reading["humedad_suelo_pct"] = isfinite((float)soil) ? soil : 0;
@@ -401,15 +491,17 @@ void setup() {
   Serial.println("=== Iniciando sistema ===");
 
   pinMode(LED_PIN, OUTPUT);
+  if (xTaskCreatePinnedToCore(wifiStatusLedTask, "wifiStatusLed", 2048, nullptr, 1, nullptr, 0) != pdPASS) {
+    Serial.println("Error: no se pudo iniciar el indicador LED de Wi-Fi.");
+  }
   dht.begin();
   Wire.begin(21, 22);
   Wire.setClock(100000);
-  bool rtcReady = rtc.begin();
+  rtcReady = rtc.begin();
   if (!rtcReady) Serial.println("RTC DS1307 no encontrado");
   scanI2C();
   lightReady = initializeLightSensor();
   if (!lightReady) Serial.println("BH1750 no disponible: la luz se enviara en cero.");
-  if (rtcReady) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   if (rtcReady) {
     Serial.print("Hora de arranque: ");
     Serial.println(dateTimeText(rtc.now()));
@@ -428,8 +520,10 @@ void setup() {
     Serial.println("MicroSD no disponible: no se podrán guardar lecturas offline.");
   }
   configureConnection();
+  synchronizeRtcFromNetwork();
   if (deviceKey.length() == 0) provisionDevice();
   applyRemoteConfiguration();
+  reportFirmwareVersion();
   lastConfigurationCheck = millis();
   checkForFirmwareUpdate();
   lastOtaCheck = millis();
@@ -438,7 +532,6 @@ void setup() {
 }
 
 void loop() {
-  if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
   flushReadingQueue();
   if (millis() - lastReading >= READING_INTERVAL_MS) {
     lastReading = millis();
