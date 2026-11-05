@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.6",
   "placa": "ESP32 Dev Module (ESP32-D0WD-V3)",
   "flash_size_bytes": 4194304,
   "recomendada": {
@@ -8,9 +8,21 @@
     "descripcion": "Imagen combinada para primera instalacion completa"
   },
   "componentes": [
-    { "archivo": "bootloader.bin", "direccion": "0x1000" },
-    { "archivo": "partitions.bin", "direccion": "0x8000" },
-    { "archivo": "boot_app0.bin", "direccion": "0xE000" },
-    { "archivo": "application.bin", "direccion": "0x10000" }
+    {
+      "archivo": "bootloader.bin",
+      "direccion": "0x1000"
+    },
+    {
+      "archivo": "partitions.bin",
+      "direccion": "0x8000"
+    },
+    {
+      "archivo": "boot_app0.bin",
+      "direccion": "0xE000"
+    },
+    {
+      "archivo": "application.bin",
+      "direccion": "0x10000"
+    }
   ]
 }
