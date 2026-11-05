@@ -7,7 +7,7 @@
 	<link rel="icon" type="image/svg+xml" href="favicon.svg">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
 	<link rel="stylesheet" href="css/styles.css">
 	<link rel="stylesheet" href="css/cuestionarios.css">
@@ -134,17 +134,17 @@
 						</div>
 					</div>
 					<div class="monitor-kpis">
-						<article class="monitor-kpi temperature-kpi"><span class="monitor-kpi-icon" aria-hidden="true">🌡️</span><div><span class="monitor-kpi-label">Temperatura</span><strong id="m-temp">Sin datos</strong><small>del ambiente</small></div></article>
-						<article class="monitor-kpi soil-kpi"><span class="monitor-kpi-icon" aria-hidden="true">💧</span><div><span class="monitor-kpi-label">Agüita en la tierra</span><strong id="m-hum">Sin datos</strong><small id="soil-kpi-note">humedad del suelo</small></div></article>
-						<article class="monitor-kpi light-kpi"><span class="monitor-kpi-icon" aria-hidden="true">☀️</span><div><span class="monitor-kpi-label">Luz que recibe</span><strong id="m-luz">Sin datos</strong><small>brillo del lugar</small></div></article>
-						<article class="monitor-kpi air-kpi"><span class="monitor-kpi-icon" aria-hidden="true">🌬️</span><div><span class="monitor-kpi-label">Humedad del aire</span><strong id="m-amb-hum">Sin datos</strong><small>del ambiente</small></div></article>
+						<article class="monitor-kpi temperature-kpi"><span class="monitor-kpi-icon" aria-hidden="true"><i class="ti ti-temperature"></i></span><div><span class="monitor-kpi-label">Temperatura</span><strong id="m-temp">Sin datos</strong><small>del ambiente</small></div></article>
+						<article class="monitor-kpi soil-kpi"><span class="monitor-kpi-icon" aria-hidden="true"><i class="ti ti-droplet"></i></span><div><span class="monitor-kpi-label">Agüita en la tierra</span><strong id="m-hum">Sin datos</strong><small id="soil-kpi-note">humedad del suelo</small></div></article>
+						<article class="monitor-kpi light-kpi"><span class="monitor-kpi-icon" aria-hidden="true"><i class="ti ti-sun"></i></span><div><span class="monitor-kpi-label">Luz que recibe</span><strong id="m-luz">Sin datos</strong><small>brillo del lugar</small></div></article>
+						<article class="monitor-kpi air-kpi"><span class="monitor-kpi-icon" aria-hidden="true"><i class="ti ti-wind"></i></span><div><span class="monitor-kpi-label">Humedad del aire</span><strong id="m-amb-hum">Sin datos</strong><small>del ambiente</small></div></article>
 					</div>
 					<div class="monitor-chart-grid">
-						<article class="monitor-panel temperature-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon">🌡️</span><h3>¿La planta tiene calor?</h3><p>Temperatura a lo largo del tiempo</p></div><span class="chart-unit">°C</span></div><div id="temperature-chart" class="monitor-chart" role="img" aria-label="Gráfica de temperatura"></div><p id="temperature-chart-note" class="chart-kid-note">Cada punto es una medición.</p></article>
-						<article class="monitor-panel soil-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon">🌱</span><h3>¿Cómo está su tierra?</h3><p>Humedad del suelo</p></div><span class="chart-unit">%</span></div><div id="soil-chart" class="monitor-chart" role="img" aria-label="Gráfica de humedad del suelo"></div><p id="soil-chart-note" class="chart-kid-note">Un suelo húmedo ayuda a crecer.</p></article>
-						<article class="monitor-panel light-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon">🌞</span><h3>Un poquito de sol</h3><p>Luz recibida por la planta</p></div><span class="chart-unit">lux</span></div><div id="light-chart" class="monitor-chart" role="img" aria-label="Gráfica de intensidad de luz"></div><p id="light-chart-note" class="chart-kid-note">La luz cambia durante el día.</p></article>
+						<article class="monitor-panel temperature-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon" aria-hidden="true"><i class="ti ti-temperature"></i></span><h3>¿La planta tiene calor?</h3><p>Temperatura a lo largo del tiempo</p></div><span class="chart-unit">°C</span></div><div id="temperature-chart" class="monitor-chart" role="img" aria-label="Gráfica de temperatura"></div><p id="temperature-chart-note" class="chart-kid-note">Cada punto es una medición.</p></article>
+						<article class="monitor-panel soil-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon" aria-hidden="true"><i class="ti ti-plant-2"></i></span><h3>¿Cómo está su tierra?</h3><p>Humedad del suelo</p></div><span class="chart-unit">%</span></div><div id="soil-chart" class="monitor-chart" role="img" aria-label="Gráfica de humedad del suelo"></div><p id="soil-chart-note" class="chart-kid-note">Un suelo húmedo ayuda a crecer.</p></article>
+						<article class="monitor-panel light-panel"><div class="monitor-panel-heading"><div><span class="monitor-panel-icon" aria-hidden="true"><i class="ti ti-sun"></i></span><h3>Un poquito de sol</h3><p>Luz recibida por la planta</p></div><span class="chart-unit">lux</span></div><div id="light-chart" class="monitor-chart" role="img" aria-label="Gráfica de intensidad de luz"></div><p id="light-chart-note" class="chart-kid-note">La luz cambia durante el día.</p></article>
 					</div>
-					<p id="monitor-empty-state" class="monitor-empty-state" hidden><span aria-hidden="true">🌱</span><strong>¡Pronto veremos crecer la gráfica!</strong><span>Cuando llegue la primera medición, aparecerá aquí.</span></p>
+					<p id="monitor-empty-state" class="monitor-empty-state" hidden><i class="ti ti-plant-2" aria-hidden="true"></i><strong>¡Pronto veremos crecer la gráfica!</strong><span>Cuando llegue la primera medición, aparecerá aquí.</span></p>
 					<p id="monitor-last-reading" class="monitor-last-reading">Esperando la primera medición</p>
 				</section>
 
@@ -346,10 +346,15 @@
 					<div class="quest-modal-backdrop" id="quest-modal" hidden>
 						<section class="quest-modal" role="dialog" aria-modal="true" aria-labelledby="quest-modal-title">
 							<button class="quest-modal-close" id="quest-modal-close" type="button" aria-label="Cerrar misión"><i class="ti ti-x" aria-hidden="true"></i></button>
-							<div class="quest-scene" id="quest-scene" aria-hidden="true"><div class="quest-sun"></div><div class="quest-ground"></div><div class="quest-character"><span>🧑‍🌾</span></div><div class="quest-prop"></div></div>
-							<div class="quest-modal-copy"><span class="eyebrow" id="quest-modal-kicker">Misión del día</span><h2 id="quest-modal-title">Observa el color</h2><p id="quest-modal-instruction">Busca manchas o cambios en las hojas.</p></div>
-							<div id="quest-modal-form"></div>
-							<p id="quest-completed-note" class="quest-completed-note" hidden><i class="ti ti-lock" aria-hidden="true"></i> Reto completado. Estos datos son solo de consulta.</p>
+							<div class="quest-modal-content">
+								<div class="quest-scene" aria-hidden="true">
+									<video class="quest-video" id="quest-video" muted loop playsinline preload="metadata" hidden></video>
+								</div>
+								<p class="quest-video-error" id="quest-video-error" role="alert" hidden>No se pudo cargar el video de esta misión. Inténtalo de nuevo más tarde.</p>
+								<div class="quest-modal-copy"><span class="eyebrow" id="quest-modal-kicker">Misión del día</span><h2 id="quest-modal-title">Observa el color</h2><p id="quest-modal-instruction">Busca manchas o cambios en las hojas.</p></div>
+								<div id="quest-modal-form"></div>
+								<p id="quest-completed-note" class="quest-completed-note" hidden><i class="ti ti-lock" aria-hidden="true"></i> Reto completado. Estos datos son solo de consulta.</p>
+							</div>
 							<div class="quest-modal-actions"><button class="secondary-btn" id="quest-modal-cancel" type="button">Más tarde</button><button class="save-btn" id="quest-complete" type="button"><i class="ti ti-check" aria-hidden="true"></i>Marcar como realizado</button></div>
 						</section>
 					</div>

@@ -90,3 +90,160 @@
 	.inline-field select, .inline-field input[type="text"] { min-width: 0; width: 100%; }
 	.toolbar-controls, .inline-field { width: 100%; }
 }
+
+/* Teacher workspace visual layer: keeps the existing hooks and interaction model intact. */
+.teacher-shell {
+	--teacher-accent: #3b6d11;
+	--teacher-accent-strong: #27500a;
+	--teacher-accent-soft: #eaf3de;
+	--teacher-surface: #ffffff;
+	--teacher-shadow: 0 10px 26px rgb(31 45 26 / 6%);
+}
+
+.teacher-shell .sidebar {
+	position: sticky;
+	top: 0;
+	min-height: 100vh;
+	min-height: 100dvh;
+	box-shadow: 7px 0 24px rgb(23 52 4 / 10%);
+}
+.teacher-shell .nav { min-height: 0; overflow-y: auto; }
+
+.teacher-shell .main { background: var(--surface-0); }
+.teacher-shell .topbar {
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	min-height: 72px;
+	padding: 1rem clamp(1rem, 3vw, 2.25rem);
+	background: rgb(251 252 249 / 92%);
+	backdrop-filter: blur(14px);
+}
+
+.teacher-shell .topbar-title { font-size: clamp(1rem, 1.4vw, 1.15rem); letter-spacing: -.02em; }
+.teacher-shell .topbar-sub { max-width: 620px; line-height: 1.45; }
+.teacher-shell .content {
+	width: min(100%, 1440px);
+	margin: 0 auto;
+	padding: clamp(1rem, 2.8vw, 2.25rem);
+}
+
+.teacher-shell .teacher-banner {
+	position: relative;
+	isolation: isolate;
+	min-height: 154px;
+	margin-bottom: 1.25rem;
+	padding: clamp(1.25rem, 3vw, 2rem);
+	overflow: hidden;
+	border: 0;
+	border-radius: 16px;
+	background: linear-gradient(115deg, #183b2b 0%, #2f6a46 63%, #426f3a 100%);
+	box-shadow: var(--teacher-shadow);
+}
+.teacher-shell .teacher-banner::after {
+	position: absolute;
+	z-index: -1;
+	right: -30px;
+	bottom: -75px;
+	width: 230px;
+	height: 230px;
+	border: 1px solid rgb(231 166 59 / 44%);
+	border-radius: 50%;
+	box-shadow: 0 0 0 22px rgb(231 166 59 / 12%), 0 0 0 44px rgb(231 166 59 / 8%);
+	content: '';
+}
+.teacher-shell .teacher-banner > div,
+.teacher-shell .teacher-banner > i { position: relative; z-index: 1; }
+.teacher-shell .teacher-banner .eyebrow { color: #ffe5b4; }
+.teacher-shell .teacher-banner h1 { color: #f7fbf4; font-size: clamp(1.35rem, 2.2vw, 1.8rem); letter-spacing: -.03em; }
+.teacher-shell .teacher-banner p { max-width: 520px; margin-top: 8px; color: #e0eadb; line-height: 1.55; }
+.teacher-shell .teacher-banner > i { margin-right: 1.5rem; color: #b5d68b; }
+
+.teacher-shell .teacher-stats { gap: 10px; margin-bottom: 1.25rem; }
+.teacher-shell .teacher-stat {
+	position: relative;
+	min-height: 82px;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: var(--teacher-surface);
+	box-shadow: 0 5px 18px rgb(31 45 26 / 4%);
+	transition: transform .18s ease, box-shadow .18s ease;
+}
+.teacher-shell .teacher-stat:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgb(31 45 26 / 9%); }
+.teacher-shell .teacher-stat i { background: var(--teacher-accent-soft); color: var(--teacher-accent); }
+.teacher-shell .teacher-stat strong { font-size: 1.45rem; letter-spacing: -.04em; }
+.teacher-shell .teacher-stat-alert { border-color: #efd1ca; background: #fffaf8; }
+.teacher-shell .teacher-stat-alert i { background: #fbe3df; color: #a33f32; }
+
+.teacher-shell .teacher-panel,
+.teacher-shell .card {
+	border-radius: 14px;
+	background: var(--teacher-surface);
+	box-shadow: var(--teacher-shadow);
+}
+.teacher-shell .teacher-panel { margin-top: 0; padding: clamp(1rem, 2vw, 1.5rem); }
+.teacher-shell .teacher-toolbar { margin-bottom: 1.15rem; }
+.teacher-shell .section-title { font-size: clamp(1rem, 1.5vw, 1.2rem); letter-spacing: -.02em; }
+.teacher-shell .toolbar-controls { gap: 7px; }
+.teacher-shell .range-switch { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 55%); }
+.teacher-shell .inline-field select,
+.teacher-shell .inline-field input[type="text"] { min-height: 34px; border-radius: 8px; }
+.teacher-shell .inline-field input[type="text"] { background: #fbfcf9; }
+.teacher-shell .student-table-wrap { margin-inline: -4px; }
+.teacher-shell .student-table th { padding-top: 4px; }
+.teacher-shell .student-table td { padding-block: 13px; }
+.teacher-shell .teacher-table tbody tr { transition: background .15s ease; }
+.teacher-shell .teacher-table tbody tr:hover td { background: #f5f9ef; }
+.teacher-shell .teacher-table tbody tr:last-child td { border-bottom: 0; }
+.teacher-shell .table-action { transition: background .15s ease, color .15s ease; }
+
+.teacher-shell .teacher-detail-grid { gap: 1rem; margin-bottom: 1rem; }
+.teacher-shell .teacher-card-block { margin-bottom: 1rem; }
+.teacher-shell .card { padding: clamp(1rem, 2vw, 1.35rem); }
+.teacher-shell .card-header { margin-bottom: .85rem; }
+.teacher-shell .card-title { font-size: 15px; }
+.teacher-shell .card-title i { color: var(--teacher-accent); }
+.teacher-shell .project-alert { border: 1px solid transparent; padding: 10px 13px; }
+.teacher-shell .project-modal {
+	border-radius: 18px;
+	box-shadow: 0 24px 70px rgb(31 45 26 / 24%);
+}
+.teacher-shell :is(button, a, input, select, textarea):focus-visible {
+	outline: 3px solid rgb(141 170 107 / 42%);
+	outline-offset: 2px;
+}
+
+@media (max-width: 800px) {
+	.teacher-shell .sidebar {
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		z-index: 10;
+		height: 100vh;
+		height: 100dvh;
+		min-height: 0;
+	}
+	.teacher-shell .main { margin-left: 64px; }
+	.teacher-shell .topbar { min-height: 68px; }
+	.teacher-shell .content { padding: 1.25rem; }
+	.teacher-shell .teacher-banner { min-height: 138px; }
+}
+
+@media (max-width: 560px) {
+	.teacher-shell .main { margin-left: 0; }
+	.teacher-shell .sidebar { width: 52px; }
+	.teacher-shell .sidebar-logo { padding-block: .75rem; }
+	.teacher-shell .sidebar-footer { padding: .75rem 0; }
+	.teacher-shell .topbar { align-items: flex-start; gap: 10px; padding: .85rem 1rem; }
+	.teacher-shell .badge-live { flex-shrink: 0; }
+	.teacher-shell .content { padding: 1rem; }
+	.teacher-shell .teacher-banner { min-height: 0; padding: 1.15rem; }
+	.teacher-shell .teacher-banner > i { display: none; }
+	.teacher-shell .teacher-stat { min-height: 72px; }
+	.teacher-shell .teacher-panel { padding: 1rem; }
+	.teacher-shell .teacher-toolbar { align-items: stretch; }
+	.teacher-shell .toolbar-controls { align-items: stretch; }
+	.teacher-shell .range-switch { width: 100%; }
+	.teacher-shell .range-switch button { flex: 1; }
+	.teacher-shell .student-table-wrap { margin-inline: -1rem; padding-inline: 1rem; }
+}

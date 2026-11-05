@@ -23,7 +23,16 @@ const questModalForm = document.getElementById('quest-modal-form');
 const questModalClose = document.getElementById('quest-modal-close');
 const questModalCancel = document.getElementById('quest-modal-cancel');
 const questComplete = document.getElementById('quest-complete');
-const questScene = document.getElementById('quest-scene');
+const questVideo = document.getElementById('quest-video');
+const questVideoError = document.getElementById('quest-video-error');
+const questVideoSources = {
+	color: 'videos/mision1.mp4',
+	compost: 'videos/mision2.mp4',
+	plagas: 'videos/mision3.mp4',
+	crecer: 'videos/mision4.mp4',
+	riego: 'videos/mision5.mp4',
+	foto: 'videos/mision6.mp4',
+};
 const questModalTitle = document.getElementById('quest-modal-title');
 const questModalInstruction = document.getElementById('quest-modal-instruction');
 const questCompletedNote = document.getElementById('quest-completed-note');
@@ -97,12 +106,12 @@ let selectedChallenges = [];
 let activeChallenge = null;
 const challengeIds = ['color', 'crecer', 'compost', 'riego', 'plagas', 'foto'];
 const challengeDetails = {
-	color: { title: 'Observa el color', label: 'Color', instruction: 'Usa la lupa y elige el color que más se parece a tus hojas.', action: 'color', fields: ['color', 'observation'] },
-	crecer: { title: 'Mide el crecimiento', label: 'Crecimiento', instruction: 'Mide desde la tierra hasta la hoja más alta y escribe tu hallazgo.', action: 'crecer', fields: ['observation'] },
-	compost: { title: 'Revisa el compost', label: 'Compost', instruction: 'Mira si está húmedo, huele bien y encuentras lombrices.', action: 'compost', fields: ['observation'] },
-	riego: { title: 'Cuida el riego', label: 'Riego', instruction: 'Toca la tierra, aplica agua si está seca y registra cuánto usaste.', action: 'riego', fields: ['water', 'time', 'humidity', 'observation'] },
-	plagas: { title: 'Detecta visitantes', label: 'Plagas', instruction: 'Revisa el frente y el reverso de las hojas en busca de bichos o agujeros.', action: 'plagas', fields: ['observation'] },
-	foto: { title: 'Captura el avance', label: 'Foto', instruction: 'Toma una foto de tu planta para comparar cómo crece con el tiempo.', action: 'foto', fields: ['photo', 'observation'] },
+	color: { title: 'Observa el color', label: 'Color', instruction: 'Usa la lupa y elige el color que más se parece a tus hojas.', fields: ['color', 'observation'] },
+	crecer: { title: 'Mide el crecimiento', label: 'Crecimiento', instruction: 'Mide desde la tierra hasta la hoja más alta y escribe tu hallazgo.', fields: ['observation'] },
+	compost: { title: 'Revisa el compost', label: 'Compost', instruction: 'Mira si está húmedo, huele bien y encuentras lombrices.', fields: ['observation'] },
+	riego: { title: 'Cuida el riego', label: 'Riego', instruction: 'Toca la tierra, aplica agua si está seca y registra cuánto usaste.', fields: ['water', 'time', 'humidity', 'observation'] },
+	plagas: { title: 'Detecta visitantes', label: 'Plagas', instruction: 'Revisa el frente y el reverso de las hojas en busca de bichos o agujeros.', fields: ['observation'] },
+	foto: { title: 'Captura el avance', label: 'Foto', instruction: 'Toma una foto de tu planta para comparar cómo crece con el tiempo.', fields: ['photo', 'observation'] },
 };
 
 logoutButton?.addEventListener('click', logout);
@@ -371,6 +380,35 @@ function configureMissionForm(challenge, log, readOnly) {
 	});
 }
 
+function showQuestVideoError(error) {
+	const videoSource = questVideoSources[activeChallenge];
+	if (!questVideo || !questVideoError || questVideo.hidden || !videoSource || questVideo.currentSrc !== new URL(videoSource, document.baseURI).href) return;
+	console.error('No se pudo reproducir el video de la misión:', error);
+	questVideo.pause();
+	questVideo.hidden = true;
+	questVideoError.hidden = false;
+}
+
+questVideo?.addEventListener('error', () => showQuestVideoError(questVideo.error));
+
+function mountQuestVideo(challenge) {
+	const videoSource = questVideoSources[challenge];
+	if (!questVideo || !questVideoError || !videoSource) return;
+	questVideo.pause();
+	questVideoError.hidden = true;
+	questVideo.hidden = false;
+	const expectedSource = new URL(videoSource, document.baseURI).href;
+	if (questVideo.currentSrc !== expectedSource || questVideo.error) {
+		questVideo.src = videoSource;
+		questVideo.load();
+	}
+	if (questVideo.readyState > 0) questVideo.currentTime = 0;
+	if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+	questVideo.play().catch((error) => {
+		if (error.name !== 'AbortError') showQuestVideoError(error);
+	});
+}
+
 function openQuestModal(challenge) {
 	const detail = challengeDetails[challenge];
 	if (!detail || !questModal) return;
@@ -379,7 +417,7 @@ function openQuestModal(challenge) {
 	const readOnly = currentProjectFinalized || selectedChallenges.includes(challenge);
 	questModalTitle.textContent = detail.title;
 	questModalInstruction.textContent = detail.instruction;
-	questScene.dataset.action = detail.action;
+	mountQuestVideo(challenge);
 	configureMissionForm(challenge, currentLog, readOnly);
 	questComplete.hidden = readOnly;
 	questCompletedNote.hidden = !readOnly;
@@ -390,6 +428,8 @@ function openQuestModal(challenge) {
 function closeQuestModal() {
 	if (!questModal) return;
 	questModal.hidden = true;
+	questVideo?.pause();
+	if (questVideoError) questVideoError.hidden = true;
 	activeChallenge = null;
 }
 
@@ -1263,4 +1303,3 @@ if (plantForm) {
 		}, 2000);
 	});
 }
-

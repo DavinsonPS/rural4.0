@@ -9,6 +9,42 @@ const { createAccessToken, sendRecoveryEmail, sendVerificationEmail } = require(
 
 const router = express.Router();
 
+const loginAttempts = new Map();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_BLOCK_MS = 15 * 60 * 1000;
+
+function loginKeys(request, identifier) {
+	return [`ip:${request.ip}`, `credential:${request.ip}:${identifier.toLowerCase()}`];
+}
+
+function getLoginAttempt(key) {
+	const now = Date.now();
+	const current = loginAttempts.get(key);
+	if (!current || current.resetAt <= now) {
+		const fresh = { count: 0, resetAt: now + LOGIN_WINDOW_MS, blockedUntil: 0 };
+		loginAttempts.set(key, fresh);
+		return fresh;
+	}
+	return current;
+}
+
+function isLoginBlocked(request, identifier) {
+	return loginKeys(request, identifier).some((key) => getLoginAttempt(key).blockedUntil > Date.now());
+}
+
+function registerFailedLogin(request, identifier) {
+	for (const key of loginKeys(request, identifier)) {
+		const attempt = getLoginAttempt(key);
+		attempt.count += 1;
+		if (attempt.count >= LOGIN_MAX_ATTEMPTS) attempt.blockedUntil = Date.now() + LOGIN_BLOCK_MS;
+	}
+}
+
+function clearLoginAttempts(request, identifier) {
+	for (const key of loginKeys(request, identifier)) loginAttempts.delete(key);
+}
+
 function createVerificationCode() {
 	const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 	return Array.from(crypto.randomBytes(8), (value) => alphabet[value % alphabet.length]).join('');
@@ -20,6 +56,9 @@ router.post('/login', async (request, response) => {
 
 	if (!identifier || !password) {
 		return response.status(400).json({ error: 'Ingresa tu usuario y contraseña.' });
+	}
+	if (isLoginBlocked(request, identifier)) {
+		return response.status(429).json({ error: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.' });
 	}
 
 	try {
@@ -37,8 +76,10 @@ router.post('/login', async (request, response) => {
 
 		const user = rows[0];
 		if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+			registerFailedLogin(request, identifier);
 			return response.status(401).json({ error: 'Las credenciales no son válidas.' });
 		}
+		clearLoginAttempts(request, identifier);
 
 		await pool.query('UPDATE tblh_usuarios SET ultimo_acceso = NOW() WHERE id = ?', [user.id]);
 

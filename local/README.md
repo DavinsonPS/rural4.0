@@ -10,23 +10,24 @@ despliega (el script de empaquetado no la incluye).
 - Node 24 (el mismo de Plesk).
 - El volcado `rural40_db.sql`. Por defecto se busca en la raíz del proyecto; si lo moviste:
   `$env:RURAL_DUMP = 'C:\ruta\rural40_db.sql'` antes de levantar la base.
+- Copia `local\.env.example` a `local\.env` y reemplaza las contraseñas de ejemplo por valores
+  aleatorios. `local\.env` está excluido de Git.
 
 ## 1. Levantar la base
 
 ```powershell
-docker compose -f local/docker-compose.yml up -d
+docker compose --env-file local/.env -f local/docker-compose.yml up -d
 ```
 
 La primera vez importa, en orden: el volcado → `001_base.sql` → `002_auditoria.sql` →
 `90_claves_locales.sql`. Eso sirve también como ensayo de las migraciones que se importan
-en Plesk. El último script **solo existe en local**: pone a todas las cuentas la contraseña
-`Rural40-local`.
+en Plesk. El último script **solo existe en local** y configura las cuentas de prueba.
 
-Para empezar de cero (borra la base local):
+La base solo se publica en `127.0.0.1`. Para empezar de cero (borra la base local):
 
 ```powershell
-docker compose -f local/docker-compose.yml down -v
-docker compose -f local/docker-compose.yml up -d
+docker compose --env-file local/.env -f local/docker-compose.yml down -v
+docker compose --env-file local/.env -f local/docker-compose.yml up -d
 ```
 
 ## 2. Levantar la app
@@ -40,15 +41,16 @@ Abre <http://localhost:3000>. Tras cambiar código del backend, detén con Ctrl+
 ejecutar `npm run dev` (el modo `--watch` de Node en Windows reinicia el servidor al solo leer
 archivos, por eso no se usa). Los cambios de frontend basta con recargar la página.
 
-`npm run dev` usa `.env.local` (base en el puerto 3307, claves de dispositivo locales y sin
-correo). El `.env` de producción no se toca.
+```bash
+ssh -N -L 127.0.0.1:3308:127.0.0.1:3306 -p <puerto> <usuario>@<servidor>
+```
 
-| Rol | Usuario | Contraseña |
-|---|---|---|
-| Estudiante | `dpaniagua` (tiene el proyecto con sensor y cámara) | `Rural40-local` |
-| Estudiante | `juan.tamayo`, `jdtamayoq`, `danielviloria`, `danielfelipe` | `Rural40-local` |
-| Docente | `marruiz` | `Rural40-local` |
-| Administrador | `admin.local` (solo existe en la base local) | `Rural40-local` |
+`npm run dev` usa `.env.local` (base en `127.0.0.1:3308` mediante el túnel SSH, claves de
+dispositivo locales y sin correo). Configura el túnel con credenciales personales y no guardes
+contraseñas ni datos de acceso del servidor en este archivo. El `.env` de producción no se toca.
+
+Las cuentas de prueba y sus credenciales se crean solo en la base local mediante los scripts
+de `local/`; no reutilices esas credenciales en producción.
 
 Las invitaciones que crea el administrador no se envían por correo en local (no hay SMTP): la
 pantalla muestra el enlace para copiarlo y abrirlo.

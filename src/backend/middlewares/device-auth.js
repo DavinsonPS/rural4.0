@@ -6,6 +6,11 @@ function deviceKey(request) {
 	return String(request.get('x-device-key') || '').trim();
 }
 
+function firmwareVersion(request) {
+	const version = String(request.get('x-firmware-version') || '').trim();
+	return /^\d+\.\d+\.\d+$/.test(version) ? version : null;
+}
+
 async function authenticateDevice(request) {
 	const key = deviceKey(request);
 	if (!key) return null;
@@ -25,6 +30,11 @@ function requireDevice({ linked = false } = {}) {
 		try {
 			const device = await authenticateDevice(request);
 			if (!device || (linked && !device.id_proyecto)) return next(new UnauthorizedError('Clave de dispositivo inválida.'));
+			const reportedVersion = firmwareVersion(request);
+			if (reportedVersion && reportedVersion !== device.version_firmware) {
+				await dispositivosRepo.updateFirmwareVersion(device.id, reportedVersion);
+				device.version_firmware = reportedVersion;
+			}
 			request.device = device;
 			return next();
 		} catch (error) {
